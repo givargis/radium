@@ -496,7 +496,6 @@ process_numeric(struct ra__lang_lexer *lexer, const char *s)
 				     RA__LANG_SUFFIX_F |
 				     RA__LANG_SUFFIX_L))) {
 			TRACE(lexer, "invalid real suffix", "");
-			RA__ERROR_TRACE(0);
 			return NULL;
 		}
 		if (!(token = mktoken(lexer, RA__LANG_REAL, 0))) {
