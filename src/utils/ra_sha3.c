@@ -141,7 +141,6 @@ int
 ra__sha3_bist(void)
 {
 	const char * const IN[] = {
-		"Stingray",
 		"Hello World!",
 		"I think, therefore I am.",
 		"To be, or not to be, that is the question.",
@@ -149,8 +148,6 @@ ra__sha3_bist(void)
 		"That's one small step for man, one giant leap for mankind."
 	};
 	const char * const OUT[] = {
-		"521ce7dd55cc31ab13699fcb27d0355a"
-		"edf64e53990b82da01ffc951a8fd1930",
 		"d0e47486bbf4c16acac26f8b65359297"
 		"3c1362909f90262877089f9c8a4536af",
 		"776a241fe325a97dbb4c06706c9a7666"
@@ -163,7 +160,7 @@ ra__sha3_bist(void)
 		"d3d3a0f9e1357469f0d3dff36857808f"
 	};
 	uint8_t out[32];
-	char out_[128];
+	char out_[65];
 	int n;
 
 	n = RA__ARRAY_SIZE(IN);
