@@ -1,4 +1,6 @@
-# Radium (Version 1.0)
+Radium (Version 1.0)
+
+Copyright (c) Tony Givargis, 2020-2025
 
 Radium is a chemical element with the atomic number 88. It belongs to group 2
 of the periodic table, known as the alkaline earth metals, and appears as a
@@ -7,7 +9,7 @@ silvery-white metal in its pure form.
 Radium is also the name of this project, which is currently operating in
 stealth mode.
 
-## Packages
+Packages
 
 $ brew update
 $ brew upgrade
