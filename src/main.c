@@ -5,15 +5,10 @@
  */
 
 #include "index/ra_index.h"
-#include "lang/ra_lang.h"
 
-#define VERSION 10
+#define VERSION "1.0"
 
-static int
-stage(void)
-{
-	return 0;
-}
+int stage(void);
 
 static void
 help(void)
@@ -44,7 +39,7 @@ main(int argc, char *argv[])
 			return 0;
 		}
 		else if (!strcmp(argv[i], "--version")) {
-			printf("%d.%d\n", VERSION / 10, VERSION % 10);
+			printf("%s\n", VERSION);
 			return 0;
 		}
 		else if (!strcmp(argv[i], "--notrace")) {
