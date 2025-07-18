@@ -8,9 +8,3 @@ silvery-white metal in its pure form.
 
 Radium is also the name of this project, which is currently operating in
 stealth mode.
-
-Packages
-
-$ brew update
-$ brew upgrade
-$ brew install emacs
