@@ -8,10 +8,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "ra_uint256.h"
+#include "ra_int256.h"
 #include "ra_kernel.h"
 #include "ra_base64.h"
 #include "ra_eigen.h"
 #include "ra_hash.h"
+#include "ra_sha3.h"
+#include "ra_json.h"
 #include "ra_ann.h"
 #include "ra_avl.h"
 #include "ra_fft.h"
@@ -217,10 +221,6 @@ base64_bist(void)
 	return 0;
 }
 
-#define D(buf,j,n) ( (uint64_t *)((char *)(buf) + ((j) + 0) * (n)) )
-#define P(buf,k,n) ( (uint64_t *)((char *)(buf) + ((k) + 0) * (n)) )
-#define Q(buf,k,n) ( (uint64_t *)((char *)(buf) + ((k) + 1) * (n)) )
-
 static int
 ec_bist(void)
 {
@@ -251,7 +251,7 @@ ec_bist(void)
 	// encode P
 
 	ra_ec_encode_p(buf2, K, N);
-	if (memcmp(P(buf1, K, N), P(buf2, K, N), N)) {
+	if (memcmp(RA_EC_P(buf1, K, N), RA_EC_P(buf2, K, N), N)) {
 		free(buf1);
 		free(buf2);
 		RA_TRACE("software");
@@ -261,7 +261,7 @@ ec_bist(void)
 	// encode Q
 
 	ra_ec_encode_q(buf2, K, N);
-	if (memcmp(Q(buf1, K, N), Q(buf2, K, N), N)) {
+	if (memcmp(RA_EC_Q(buf1, K, N), RA_EC_Q(buf2, K, N), N)) {
 		free(buf1);
 		free(buf2);
 		RA_TRACE("software");
@@ -271,7 +271,7 @@ ec_bist(void)
 	// one D[*]/P encode
 
 	for (int j=0; j<K; ++j) {
-		memset(D(buf2, j, N), rand(), N);
+		memset(RA_EC_D(buf2, j, N), rand(), N);
 		ra_ec_encode_dp(buf2, K, N, j);
 	}
 	if (memcmp(buf1, buf2, (K + 2) * N)) {
@@ -284,7 +284,7 @@ ec_bist(void)
 	// one D[*]/Q encode
 
 	for (int j=0; j<K; ++j) {
-		memset(D(buf2, j, N), rand(), N);
+		memset(RA_EC_D(buf2, j, N), rand(), N);
 		ra_ec_encode_dq(buf2, K, N, j);
 	}
 	if (memcmp(buf1, buf2, (K + 2) * N)) {
@@ -298,14 +298,14 @@ ec_bist(void)
 
 	for (int i=0; i<K; i+=7) {
 		for (int j=i+1; j<K; j+=7) {
-			memset(D(buf2, i, N), rand(), N);
-			memset(D(buf2, j, N), rand(), N);
+			memset(RA_EC_D(buf2, i, N), rand(), N);
+			memset(RA_EC_D(buf2, j, N), rand(), N);
 			ra_ec_encode_dd(buf2, K, N, i, j);
-			if (memcmp(D(buf1, i, N),
-				   D(buf2, i, N),
+			if (memcmp(RA_EC_D(buf1, i, N),
+				   RA_EC_D(buf2, i, N),
 				   N) ||
-			    memcmp(D(buf1, j, N),
-				   D(buf2, j, N),
+			    memcmp(RA_EC_D(buf1, j, N),
+				   RA_EC_D(buf2, j, N),
 				   N)) {
 				free(buf1);
 				free(buf2);
@@ -503,6 +503,460 @@ hash_bist(void)
 	return 0;
 }
 
+static int
+sha3_bist(void)
+{
+	const char * const IN[] = {
+		"Hello World!",
+		"I think, therefore I am.",
+		"To be, or not to be, that is the question.",
+		"The only thing we have to fear is fear itself.",
+		"That's one small step for man, one giant leap for mankind."
+	};
+	const char * const OUT[] = {
+		"d0e47486bbf4c16acac26f8b65359297"
+		"3c1362909f90262877089f9c8a4536af",
+		"776a241fe325a97dbb4c06706c9a7666"
+		"d9ccdf3e3b257160f93732f504a686b0",
+		"b0ed6cbffe518fc6487729007afe43ec"
+		"2c81f75dafb366430ecf6869ee4061eb",
+		"4d412e894b376e84f4c410679725212b"
+		"7dec0ee0c94bc6679a006708a4b7f9b8",
+		"6fef564538f16204a4b1424abdb2e3d3"
+		"d3d3a0f9e1357469f0d3dff36857808f"
+	};
+	uint8_t out[32];
+	char out_[65];
+
+	for (int i=0; i<(int)RA_ARRAY_SIZE(IN); ++i) {
+		ra_sha3(IN[i], strlen(IN[i]), out);
+		for (int j=0; j<32; ++j) {
+			ra_sprintf(out_ + 2 * j,
+				   sizeof (out_) - 2 * j,
+				   "%02x",
+				   (int)out[j]);
+		}
+		if (strcmp(OUT[i], out_)) {
+			RA_TRACE("software");
+			return -1;
+		}
+	}
+	return 0;
+}
+
+static int
+int256_bist(void)
+{
+	const int N = 123456;
+	struct ra_uint256 a;
+	struct ra_uint256 b;
+	struct ra_uint256 q;
+	struct ra_uint256 r;
+	char buf[96];
+
+	// basic
+
+	if (ra_int256_init(&a, 0) ||
+	    ra_int256_is_neg(&a) ||
+	    ra_int256_neg(&b, &a) ||
+	    ra_int256_is_neg(&b)) {
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_int256_string(&a, buf);
+	if (strcmp("0", buf)) {
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_int256_string(&b, buf);
+	if (strcmp("0", buf)) {
+		RA_TRACE("software");
+		return -1;
+	}
+
+	// basic
+
+	if (ra_int256_init(&a,
+			   "0x"
+			   "ffffffffffffffff"
+			   "ffffffffffffffff"
+			   "ffffffffffffffff"
+			   "ffffffffffffffff") ||
+	    !ra_int256_is_neg(&a) ||
+	    ra_int256_neg(&b, &a) ||
+	    ra_int256_is_neg(&b)) {
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_int256_string(&a, buf);
+	if (strcmp("-1", buf)) {
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_int256_string(&b, buf);
+	if (strcmp("1", buf)) {
+		RA_TRACE("software");
+		return -1;
+	}
+
+	// basic
+
+	if (ra_int256_init(&a, "1") ||
+	    ra_int256_is_neg(&a) ||
+	    ra_int256_neg(&b, &a) ||
+	    !ra_int256_is_neg(&b)) {
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_int256_string(&a, buf);
+	if (strcmp("1", buf)) {
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_int256_string(&b, buf);
+	if (strcmp("-1", buf)) {
+		RA_TRACE("software");
+		return -1;
+	}
+
+	// a == (a / b) * b + (a % b)
+
+	for (int i=0; i<N; ++i) {
+		a.hh = ((uint64_t)rand() << 32) + rand();
+		a.hl = ((uint64_t)rand() << 32) + rand();
+		a.lh = ((uint64_t)rand() << 32) + rand();
+		a.ll = ((uint64_t)rand() << 32) + rand();
+		b.hh = ((uint64_t)rand() << 32) + rand();
+		b.hl = ((uint64_t)rand() << 32) + rand();
+		b.lh = ((uint64_t)rand() << 32) + rand();
+		b.ll = ((uint64_t)rand() << 32) + rand();
+		b.ll = b.ll ? b.ll : 1;
+		if (ra_int256_div(&q, &a, &b) ||
+		    ra_int256_mod(&r, &a, &b) ||
+		    ra_int256_mul(&q, &q, &b) ||
+		    ra_int256_add(&b, &q, &r) ||
+		    ra_int256_cmp(&a, &b)) {
+			RA_TRACE("software");
+			return -1;
+		}
+	}
+	return 0;
+}
+
+static int
+json_bist(void)
+{
+	const struct ra_json_node *node;
+	ra_json_t json;
+
+	// empty array
+
+	if (!(json = ra_json_open("[]"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    node->u.array.node ||
+	    (node = node->u.array.link)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+
+	// empty object
+
+	if (!(json = ra_json_open("{}"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    node->u.object.key ||
+	    node->u.object.node ||
+	    (node = node->u.object.link)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+
+	// single-element array
+
+	if (!(json = ra_json_open("[true]"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !node->u.array.node ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.array.node->op) ||
+	    (1 != node->u.array.node->u.bool) ||
+	    (node = node->u.array.link)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+
+	// single-element object
+
+	if (!(json = ra_json_open("{\"key\":false}"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.key ||
+	    strcmp("key", node->u.object.key) ||
+	    !node->u.object.node ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.object.node->op) ||
+	    (0 != node->u.object.node->u.bool) ||
+	    (node = node->u.object.link)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+
+	// two-element array
+
+	if (!(json = ra_json_open("[\"hello\",\"world\"]"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !node->u.array.node ||
+	    (RA_JSON_NODE_OP_STRING != node->u.array.node->op) ||
+	    !node->u.array.node->u.string ||
+	    strcmp("hello", node->u.array.node->u.string) ||
+	    !(node = node->u.array.link) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !node->u.array.node ||
+	    (RA_JSON_NODE_OP_STRING != node->u.array.node->op) ||
+	    !node->u.array.node->u.string ||
+	    strcmp("world", node->u.array.node->u.string) ||
+	    (node = node->u.array.link)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+
+	// two-element object
+
+	if (!(json = ra_json_open("{\"key1\":0.5,\"key2\":-.75}"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.node ||
+	    !node->u.object.key ||
+	    strcmp("key1", node->u.object.key) ||
+	    (RA_JSON_NODE_OP_NUMBER != node->u.object.node->op) ||
+	    (0.5 != node->u.object.node->u.number) ||
+	    !(node = node->u.object.link) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.node ||
+	    !node->u.object.key ||
+	    strcmp("key2", node->u.object.key) ||
+	    (RA_JSON_NODE_OP_NUMBER != node->u.object.node->op) ||
+	    (-0.75 != node->u.object.node->u.number) ||
+	    (node = node->u.object.link)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+
+	// nested
+
+	if (!(json = ra_json_open("[[true,false],{\"key\":\"val\"}]"))) {
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !(node = node->u.array.node) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.array.node->op) ||
+	    (1 != node->u.array.node->u.bool) ||
+	    !(node = node->u.array.link) ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.array.node->op) ||
+	    (0 != node->u.array.node->u.bool)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !(node = node->u.array.link) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !(node = node->u.array.node) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.key ||
+	    strcmp("key", node->u.object.key) ||
+	    !(node = node->u.object.node) ||
+	    (RA_JSON_NODE_OP_STRING != node->op) ||
+	    strcmp("val", node->u.string)) {
+		ra_json_close(json);
+		RA_TRACE("software");
+		return -1;
+	}
+	ra_json_close(json);
+	return 0;
+}
+
+static int
+uint256_bist(void)
+{
+	const int N = 123456;
+	struct ra_uint256 a;
+	struct ra_uint256 b;
+	struct ra_uint256 q;
+	struct ra_uint256 r;
+	char buf[96];
+	int set[256];
+	int k;
+
+	// basic
+
+	if (ra_uint256_init(&a, 0) ||
+	    !ra_uint256_is_zero(&a) ||
+	    ra_uint256_init(&a, "") ||
+	    !ra_uint256_is_zero(&a) ||
+	    ra_uint256_init(&a, "0") ||
+	    !ra_uint256_is_zero(&a) ||
+	    ra_uint256_init(&a, "0x0") ||
+	    !ra_uint256_is_zero(&a) ||
+	    ra_uint256_init(&a,
+			    "11579208923731619542357098"
+			    "50086879078532699846656405"
+			    "64039457584007913129639935") ||
+	    ra_uint256_init(&b,
+			    "0x"
+			    "ffffffffffffffff"
+			    "ffffffffffffffff"
+			    "ffffffffffffffff"
+			    "ffffffffffffffff") ||
+	    ra_uint256_cmp(&a, &b)) {
+		RA_TRACE("software");
+		return -1;
+	}
+
+	// basic
+
+	for (int i=0; i<N; ++i) {
+		if (0 == i) {
+			memset(&a, 0x00, sizeof (struct ra_uint256));
+		}
+		else if (1 == i) {
+			memset(&a, 0xff, sizeof (struct ra_uint256));
+		}
+		else {
+			a.hh = ((uint64_t)rand() << 32) + rand();
+			a.hl = ((uint64_t)rand() << 32) + rand();
+			a.lh = ((uint64_t)rand() << 32) + rand();
+			a.ll = ((uint64_t)rand() << 32) + rand();
+		}
+		ra_uint256_string(&a, buf);
+		if (ra_uint256_init(&b, buf) || ra_uint256_cmp(&a, &b)) {
+			RA_TRACE("software");
+			return -1;
+		}
+	}
+
+	// a == (a / b) * b + (a % b)
+
+	for (int i=0; i<N; ++i) {
+		a.hh = ((uint64_t)rand() << 32) + rand();
+		a.hl = ((uint64_t)rand() << 32) + rand();
+		a.lh = ((uint64_t)rand() << 32) + rand();
+		a.ll = ((uint64_t)rand() << 32) + rand();
+		b.hh = ((uint64_t)rand() << 32) + rand();
+		b.hl = ((uint64_t)rand() << 32) + rand();
+		b.lh = ((uint64_t)rand() << 32) + rand();
+		b.ll = ((uint64_t)rand() << 32) + rand();
+		b.ll = b.ll ? b.ll : 1;
+		if (ra_uint256_div(&q, &a, &b) ||
+		    ra_uint256_mod(&r, &a, &b) ||
+		    ra_uint256_mul(&q, &q, &b) ||
+		    ra_uint256_add(&b, &q, &r) ||
+		    ra_uint256_cmp(&a, &b)) {
+			RA_TRACE("software");
+			return -1;
+		}
+	}
+
+	// shl
+
+	for (int i=0; i<N; ++i) {
+		RA_UINT256_SET(&a, 0);
+		for (int j=0; j<256; ++j) {
+			set[j] = rand() % 2;
+			switch (set[j]) {
+			case 1: ra_uint256_set_bit(&a, j); break;
+			case 0: ra_uint256_clr_bit(&a, j); break;
+			}
+		}
+		k = rand() % 256;
+		ra_uint256_shl_(&a, &a, k);
+		for (int j=0; j<256; ++j) {
+			if (j < k) {
+				if (ra_uint256_get_bit(&a, j)) {
+					RA_TRACE("software");
+					return -1;
+				}
+			}
+			else if (set[j - k] && !ra_uint256_get_bit(&a, j)) {
+				RA_TRACE("software");
+				return -1;
+			}
+			else if (!set[j - k] && ra_uint256_get_bit(&a, j)) {
+				RA_TRACE("software");
+				return -1;
+			}
+		}
+	}
+
+	// shr
+
+	for (int i=0; i<N; ++i) {
+		RA_UINT256_SET(&a, 0);
+		for (int j=0; j<256; ++j) {
+			set[j] = rand() % 2;
+			switch (set[j]) {
+			case 1: ra_uint256_set_bit(&a, 255 - j); break;
+			case 0: ra_uint256_clr_bit(&a, 255 - j); break;
+			}
+		}
+		k = rand() % 256;
+		ra_uint256_shr_(&a, &a, k);
+		for (int j=0; j<256; ++j) {
+			if (j < k) {
+				if (ra_uint256_get_bit(&a, 255 - j)) {
+					RA_TRACE("software");
+					return -1;
+				}
+			}
+			else if (set[j - k] &&
+				 !ra_uint256_get_bit(&a, 255 - j)) {
+				RA_TRACE("software");
+				return -1;
+			}
+			else if (!set[j - k] &&
+				 ra_uint256_get_bit(&a, 255 - j)) {
+				RA_TRACE("software");
+				return -1;
+			}
+		}
+	}
+	return 0;
+}
+
 int
 ra_bist(void)
 {
@@ -513,5 +967,9 @@ ra_bist(void)
 	BIST(eigen_bist, "eigen");
 	BIST(fft_bist, "fft");
 	BIST(hash_bist, "hash");
+	BIST(int256_bist, "int256");
+	BIST(json_bist, "json");
+	BIST(sha3_bist, "sha3");
+	BIST(uint256_bist, "uint256");
 	return 0;
 }
