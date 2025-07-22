@@ -22,7 +22,7 @@
 #include "ra_ec.h"
 #include "ra_bist.h"
 
-#define BIST(f,m)					\
+#define BIST(f, m)					\
 	do {						\
 		uint64_t t = ra_time();			\
 		if (f()) {				\

@@ -10,7 +10,7 @@
 #include "ra_kernel.h"
 #include "ra_hash.h"
 
-#define MIX(a,b,c,d)							\
+#define MIX(a, b, c, d)							\
 	do {								\
 		(c) = ((c) << 50)|((c) >> 14); (c) += (d); (a) ^= (c);	\
 		(d) = ((d) << 52)|((d) >> 12); (d) += (a); (b) ^= (d);	\

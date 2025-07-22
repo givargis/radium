@@ -13,7 +13,7 @@
 
 #define RA_UINT256_STR_LEN 81
 
-#define RA_UINT256_SET(z,v)				\
+#define RA_UINT256_SET(z, v)				\
 	do {						\
 		memset(z,				\
 		       0,				\

@@ -13,9 +13,9 @@
 #define RA_EC_MIN_N 8
 #define RA_EC_MAX_N 262144 // 8^0, 8^1 ... 8^6
 
-#define RA_EC_D(buf,j,n) ( (uint64_t *)((char *)(buf) + ((j) + 0) * (n)) )
-#define RA_EC_P(buf,k,n) ( (uint64_t *)((char *)(buf) + ((k) + 0) * (n)) )
-#define RA_EC_Q(buf,k,n) ( (uint64_t *)((char *)(buf) + ((k) + 1) * (n)) )
+#define RA_EC_D(buf, j, n) ( (uint64_t *)((char *)(buf) + ((j) + 0) * (n)) )
+#define RA_EC_P(buf, k, n) ( (uint64_t *)((char *)(buf) + ((k) + 0) * (n)) )
+#define RA_EC_Q(buf, k, n) ( (uint64_t *)((char *)(buf) + ((k) + 1) * (n)) )
 
 void ra_ec_init(void);
 

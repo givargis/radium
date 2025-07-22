@@ -13,7 +13,7 @@
 #include "ra_kernel.h"
 #include "ra_json.h"
 
-#define TRACE(j,m)				\
+#define TRACE(j, m)				\
 	do {					\
 		(j)->curr = "";			\
 		(j)->token.op = OP_END;		\
@@ -24,7 +24,7 @@
 	}					\
 	while (0)
 
-#define MKN(j,n,t)				\
+#define MKN(j, n, t)				\
 	do {					\
 		if (!((n) = allocate((j)))) {	\
 			RA_TRACE(NULL);		\

@@ -10,9 +10,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define RA_MIN(a,b) ( ((a) < (b)) ? (a) : (b) )
-#define RA_MAX(a,b) ( ((a) > (b)) ? (a) : (b) )
-#define RA_DUP(a,b) ( (0 == ((a) % (b))) ? ((a) / (b)) : ((a) / (b) + 1) )
+#define RA_MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
+#define RA_MAX(a, b) ( ((a) > (b)) ? (a) : (b) )
+#define RA_DUP(a, b) ( (0 == ((a) % (b))) ? ((a) / (b)) : ((a) / (b) + 1) )
 
 #define RA_ARRAY_SIZE(a) ( sizeof ((a)) / sizeof ((a)[0]) )
 
