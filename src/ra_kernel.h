@@ -30,6 +30,8 @@ uint64_t ra_time(void);
 
 int ra_endian(void);
 
+char *ra_strdup(const char *s);
+
 void ra_sprintf(char *buf, size_t len, const char *format, ...);
 
 void ra_log(const char *format, ...);

@@ -402,9 +402,9 @@ ra_json_open(const char *s)
 		return NULL;
 	}
 	memset(json, 0, sizeof (struct ra_json));
-	if (!(json->content = strdup(s))) {
+	if (!(json->content = ra_strdup(s))) {
 		ra_json_close(json);
-		RA_TRACE("out of memory");
+		RA_TRACE(NULL);
 		return NULL;
 	}
 

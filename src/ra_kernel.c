@@ -58,8 +58,10 @@ ra_time(void)
 int
 ra_endian(void)
 {
-	uint32_t sample = 0x87654321;
-	uint8_t *probe = (uint8_t *)&sample;
+	const uint32_t SAMPLE = 0x87654321;
+	const uint8_t *probe;
+
+	probe = (const uint8_t *)&SAMPLE;
 	if ((0x21 == probe[0])) {
 		if ((0x43 != probe[1]) ||
 		    (0x65 != probe[2]) ||
@@ -70,6 +72,22 @@ ra_endian(void)
 		return 0; // little
 	}
 	return 1; // big
+}
+
+char *
+ra_strdup(const char *s)
+{
+	size_t n;
+	char *p;
+
+	n = s ? strlen(s) : 0;
+	if (!(p = malloc(n + 1))) {
+		RA_TRACE("out of memory");
+		return NULL;
+	}
+	memcpy(p, s, n);
+	p[n] = '\0';
+	return p;
 }
 
 void

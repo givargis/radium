@@ -131,8 +131,8 @@ delete(struct node *root, const char *key, int *found)
 			else {
 				node = min(root->right);
 				free((void *)root->key);
-				if (!(root->key = strdup(node->key))) {
-					RA_TRACE("out of memory (halting)");
+				if (!(root->key = ra_strdup(node->key))) {
+					RA_TRACE(NULL);
 					exit(-1);
 				}
 				root->val = node->val;
@@ -179,8 +179,8 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 			return NULL;
 		}
 		memset(root, 0, sizeof (struct node));
-		if (!(root->key = strdup(key))) {
-			RA_TRACE("out of memory");
+		if (!(root->key = ra_strdup(key))) {
+			RA_TRACE(NULL);
 			return NULL;
 		}
 		root->val = val;
