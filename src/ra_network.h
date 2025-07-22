@@ -9,7 +9,7 @@
 
 #include <stddef.h>
 
-#define RA_NETWORK_WRITEV_MAX_N 8
+#define RA_NETWORK_WRITEV_MAX_N 4
 
 typedef struct ra_network *ra_network_t;
 
