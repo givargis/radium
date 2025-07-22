@@ -8,18 +8,19 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "ra_uint256.h"
-#include "ra_int256.h"
-#include "ra_kernel.h"
-#include "ra_base64.h"
-#include "ra_eigen.h"
-#include "ra_hash.h"
-#include "ra_sha3.h"
-#include "ra_json.h"
 #include "ra_ann.h"
 #include "ra_avl.h"
-#include "ra_fft.h"
+#include "ra_base64.h"
 #include "ra_ec.h"
+#include "ra_eigen.h"
+#include "ra_fft.h"
+#include "ra_file.h"
+#include "ra_hash.h"
+#include "ra_int256.h"
+#include "ra_json.h"
+#include "ra_kernel.h"
+#include "ra_sha3.h"
+#include "ra_uint256.h"
 #include "ra_bist.h"
 
 #define BIST(f, m)					\
@@ -470,6 +471,75 @@ fft_bist(void)
 			return -1;
 		}
 	}
+	return 0;
+}
+
+static int
+file_bist(void)
+{
+	const char *PATHNAME = "~~~bist~~~";
+	const char *QUOTE = "Time is an illusion. Lunchtime is doubly so.";
+	const char *s;
+
+	// empty string
+
+	if (ra_file_write(PATHNAME, "")) {
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (!(s = ra_file_read(PATHNAME))) {
+		ra_file_unlink(PATHNAME);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (strlen(s)) {
+		free((void *)s);
+		ra_file_unlink(PATHNAME);
+		RA_TRACE("software");
+		return -1;
+	}
+	free((void *)s);
+	ra_file_unlink(PATHNAME);
+
+	// single-byte string
+
+	if (ra_file_write(PATHNAME, "!")) {
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (!(s = ra_file_read(PATHNAME))) {
+		ra_file_unlink(PATHNAME);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (strcmp(s, "!")) {
+		free((void *)s);
+		ra_file_unlink(PATHNAME);
+		RA_TRACE("software");
+		return -1;
+	}
+	free((void *)s);
+	ra_file_unlink(PATHNAME);
+
+	// multi-byte
+
+	if (ra_file_write(PATHNAME, QUOTE)) {
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (!(s = ra_file_read(PATHNAME))) {
+		ra_file_unlink(PATHNAME);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (strcmp(s, QUOTE)) {
+		free((void *)s);
+		ra_file_unlink(PATHNAME);
+		RA_TRACE("software");
+		return -1;
+	}
+	free((void *)s);
+	ra_file_unlink(PATHNAME);
 	return 0;
 }
 
@@ -966,6 +1036,7 @@ ra_bist(void)
 	BIST(ec_bist, "ec");
 	BIST(eigen_bist, "eigen");
 	BIST(fft_bist, "fft");
+	BIST(file_bist, "file");
 	BIST(hash_bist, "hash");
 	BIST(int256_bist, "int256");
 	BIST(json_bist, "json");
