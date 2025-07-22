@@ -26,6 +26,8 @@
 
 void ra_init(int notrace, int nocolor);
 
+void ra_wait(void);
+
 uint64_t ra_time(void);
 
 int ra_endian(void);

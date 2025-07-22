@@ -5,17 +5,20 @@
 //
 
 #include <sys/time.h>
+#include <unistd.h>
 
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <signal.h>
 #include <stdio.h>
 
 #include "ra_kernel.h"
 
 static int _notrace_;
 static int _nocolor_;
+static int _intflag_;
 
 enum { BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GRAY };
 
@@ -36,11 +39,41 @@ reset(void)
 	}
 }
 
+static void
+_signal_(int signum)
+{
+	if (SIGINT == signum) {
+		__sync_fetch_and_add(&_intflag_, 1);
+		printf("\r  \r");
+	}
+}
+
 void
 ra_init(int notrace, int nocolor)
 {
 	_notrace_ = notrace ? 1 : 0;
 	_nocolor_ = nocolor ? 1 : 0;
+}
+
+void
+ra__wait(void)
+{
+	_intflag_ = 0;
+	if ((SIG_ERR == signal(SIGHUP, _signal_)) ||
+	    (SIG_ERR == signal(SIGPIPE, _signal_)) ||
+	    (SIG_ERR == signal(SIGINT, _signal_))) {
+		RA_TRACE("kernel (halting)");
+		exit(-1);
+	}
+	while (!__sync_fetch_and_add(&_intflag_, 0)) {
+		sleep(1);
+	}
+	if ((SIG_ERR == signal(SIGHUP, SIG_DFL)) ||
+	    (SIG_ERR == signal(SIGPIPE, SIG_DFL)) ||
+	    (SIG_ERR == signal(SIGINT, SIG_DFL))) {
+		RA_TRACE("kernel (halting)");
+		exit(-1);
+	}
 }
 
 uint64_t
