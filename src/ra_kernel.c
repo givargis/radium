@@ -14,8 +14,8 @@
 
 #include "ra_kernel.h"
 
-int _notrace_;
-int _nocolor_;
+static int _notrace_;
+static int _nocolor_;
 
 enum { BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GRAY };
 
