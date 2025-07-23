@@ -88,7 +88,7 @@ ra_time(void)
 	return (uint64_t)timeval.tv_sec * 1000000 + (uint64_t)timeval.tv_usec;
 }
 
-int
+ra_endian_t
 ra_endian(void)
 {
 	const uint32_t SAMPLE = 0x87654321;
@@ -102,9 +102,9 @@ ra_endian(void)
 			RA_TRACE("architecture (halting)");
 			exit(-1);
 		}
-		return 0; // little
+		return RA_ENDIAN_LITTLE;
 	}
-	return 1; // big
+	return RA_ENDIAN_BIG;
 }
 
 char *
@@ -170,4 +170,36 @@ ra_log(const char *format, ...)
 		reset();
 		fflush(stdout);
 	}
+}
+
+const char *
+ra_pathname(ra_directory_t type, const char *name)
+{
+	const char *dir;
+	size_t n;
+	char *s;
+
+	if (RA_DIRECTORY_TEMP == type) {
+		if (!(dir = getenv("RA_DIRECTORY_TEMP"))) {
+			if (!(dir = getenv("TMPDIR"))) {
+				dir = "";
+			}
+		}
+	}
+	else if (RA_DIRECTORY_DATA == type) {
+		if (!(dir = getenv("RA_DIRECTORY_DATA"))) {
+			dir = "";
+		}
+	}
+	else {
+		RA_TRACE("argument");
+		return NULL;
+	}
+	n = strlen(dir) + strlen(name) + 2;
+	if (!(s = malloc(n))) {
+		RA_TRACE("out of memory");
+		return NULL;
+	}
+	ra_sprintf(s, n, "%s%s%s", dir, strlen(dir) ? "/" : "", name);
+	return s;
 }

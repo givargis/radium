@@ -54,6 +54,7 @@ ann_bist(void)
 	const int TEST_N = 10000;
 	const int BATCH_SIZE = 8;
 	const char *s1, *s2;
+	const char *s3, *s4;
 	uint8_t *images;
 	uint8_t *labels;
 	size_t n1, n2;
@@ -63,31 +64,41 @@ ann_bist(void)
 
 	// load MNIST data
 
-	if (!(s1 = ra_file_read("../data/images.dat")) ||
-	    !(s2 = ra_file_read("../data/labels.dat"))) {
-		free((void *)s1);
-		RA_TRACE(NULL);
-		return -1;
-	}
-	if (!(images = malloc(RA_BASE64_DECODE_LEN(strlen(s1)))) ||
-	    !(labels = malloc(RA_BASE64_DECODE_LEN(strlen(s2))))) {
+	s1 = s2 = s3 = s4 = NULL;
+	if (!(s1 = ra_pathname(RA_DIRECTORY_DATA, "images.dat")) ||
+	    !(s2 = ra_pathname(RA_DIRECTORY_DATA, "labels.dat")) ||
+	    !(s3 = ra_file_read(s1)) ||
+	    !(s4 = ra_file_read(s2))) {
 		free((void *)s1);
 		free((void *)s2);
-		free(images);
-		RA_TRACE("out of memory");
-		return -1;
-	}
-	if (ra_base64_decode(images, &n1, s1) ||
-	    ra_base64_decode(labels, &n2, s2)) {
-		free((void *)s1);
-		free((void *)s2);
-		free(images);
-		free(labels);
+		free((void *)s3);
+		free((void *)s4);
 		RA_TRACE(NULL);
 		return -1;
 	}
 	free((void *)s1);
 	free((void *)s2);
+	images = labels = NULL;
+	if (!(images = malloc(RA_BASE64_DECODE_LEN(strlen(s3)))) ||
+	    !(labels = malloc(RA_BASE64_DECODE_LEN(strlen(s4))))) {
+		free((void *)s3);
+		free((void *)s4);
+		free(images);
+		free(labels);
+		RA_TRACE("out of memory");
+		return -1;
+	}
+	if (ra_base64_decode(images, &n1, s3) ||
+	    ra_base64_decode(labels, &n2, s4)) {
+		free((void *)s3);
+		free((void *)s4);
+		free(images);
+		free(labels);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	free((void *)s3);
+	free((void *)s4);
 
 	// sanity check
 

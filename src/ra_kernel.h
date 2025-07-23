@@ -24,18 +24,30 @@
 		       (s) ? (s) : "^");	\
 	} while(0)
 
+typedef enum {
+	RA_ENDIAN_LITTLE,
+	RA_ENDIAN_BIG
+} ra_endian_t;
+
+typedef enum {
+	RA_DIRECTORY_TEMP,
+	RA_DIRECTORY_DATA
+} ra_directory_t;
+
 void ra_init(int notrace, int nocolor);
 
 void ra_wait(void);
 
 uint64_t ra_time(void);
 
-int ra_endian(void);
+ra_endian_t ra_endian(void);
 
 char *ra_strdup(const char *s);
 
 void ra_sprintf(char *buf, size_t len, const char *format, ...);
 
 void ra_log(const char *format, ...);
+
+const char *ra_pathname(ra_directory_t type, const char *name);
 
 #endif // _RA_KERNEL_H_
