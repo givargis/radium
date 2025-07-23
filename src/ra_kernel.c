@@ -20,7 +20,14 @@ static int _notrace_;
 static int _nocolor_;
 static int _intflag_;
 
-enum { BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GRAY };
+static void
+sigint(int signum)
+{
+	if (SIGINT == signum) {
+		__sync_fetch_and_add(&_intflag_, 1);
+		printf("\r  \r");
+	}
+}
 
 static void
 color(int color)
@@ -39,15 +46,6 @@ reset(void)
 	}
 }
 
-static void
-_signal_(int signum)
-{
-	if (SIGINT == signum) {
-		__sync_fetch_and_add(&_intflag_, 1);
-		printf("\r  \r");
-	}
-}
-
 void
 ra_init(int notrace, int nocolor)
 {
@@ -59,9 +57,9 @@ void
 ra__wait(void)
 {
 	_intflag_ = 0;
-	if ((SIG_ERR == signal(SIGHUP, _signal_)) ||
-	    (SIG_ERR == signal(SIGPIPE, _signal_)) ||
-	    (SIG_ERR == signal(SIGINT, _signal_))) {
+	if ((SIG_ERR == signal(SIGHUP, sigint)) ||
+	    (SIG_ERR == signal(SIGPIPE, sigint)) ||
+	    (SIG_ERR == signal(SIGINT, sigint))) {
 		RA_TRACE("kernel (halting)");
 		exit(-1);
 	}
@@ -150,17 +148,17 @@ ra_log(const char *format, ...)
 	if (strncmp(format, "trace:", 6) || !_notrace_) {
 		if (!strncmp(format, "trace:", 6)) {
 			format += 6;
-			color(CYAN);
+			color(6); // cyan
 			printf("trace:");
 		}
 		else if (!strncmp(format, "error:", 6)) {
 			format += 6;
-			color(RED);
+			color(1); // red
 			printf("error:");
 		}
 		else if (!strncmp(format, "info:", 5)) {
 			format += 5;
-			color(BLUE);
+			color(0); // black
 			printf("info:");
 		}
 		va_start(ap, format);
