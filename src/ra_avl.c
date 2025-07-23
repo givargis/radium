@@ -12,7 +12,7 @@
 #include "ra_avl.h"
 
 struct ra_avl {
-	unsigned long size;
+	unsigned long items;
 	struct node {
 		int depth;
 		const char *key;
@@ -184,7 +184,7 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 			return NULL;
 		}
 		root->val = val;
-		++avl->size;
+		++avl->items;
 		return root;
 	}
 	if (!(d = strcmp(key, root->key))) {
@@ -273,7 +273,7 @@ ra_avl_delete(ra_avl_t avl, const char *key)
 
 	found = 0;
 	avl->root = delete(avl->root, key, &found);
-	avl->size -= found ? 1 : 0;
+	avl->items -= found ? 1 : 0;
 }
 
 int
@@ -326,9 +326,9 @@ ra_avl_iterate(ra_avl_t avl, ra_avl_fnc_t fnc, void *ctx)
 }
 
 unsigned long
-ra_avl_size(ra_avl_t avl)
+ra_avl_items(ra_avl_t avl)
 {
 	assert( avl );
 
-	return avl->size;
+	return avl->items;
 }

@@ -176,7 +176,7 @@ avl_bist(void)
 		RA_TRACE(NULL);
 		return -1;
 	}
-	if (0 != ra_avl_size(avl)) {
+	if (0 != ra_avl_items(avl)) {
 		ra_avl_close(avl);
 		RA_TRACE("software");
 		return -1;
@@ -185,12 +185,12 @@ avl_bist(void)
 	// single item
 
 	if (ra_avl_update(avl, "key", "val") ||
-	    (1 != ra_avl_size(avl)) ||
+	    (1 != ra_avl_items(avl)) ||
 	    strcmp("val",
 		   ra_avl_lookup(avl, "key") ?
 		   ra_avl_lookup(avl, "key") : "") ||
 	    ra_avl_update(avl, "key", "lav") ||
-	    (1 != ra_avl_size(avl)) ||
+	    (1 != ra_avl_items(avl)) ||
 	    strcmp("lav",
 		   ra_avl_lookup(avl, "key") ?
 		   ra_avl_lookup(avl, "key") : "")) {
@@ -199,7 +199,7 @@ avl_bist(void)
 		return -1;
 	}
 	ra_avl_delete(avl, "key");
-	if (0 != ra_avl_size(avl)) {
+	if (0 != ra_avl_items(avl)) {
 		ra_avl_close(avl);
 		RA_TRACE("software");
 		return -1;
@@ -278,7 +278,7 @@ avl_bist(void)
 	// empty
 
 	ra_avl_empty(avl);
-	if (0 != ra_avl_size(avl)) {
+	if (0 != ra_avl_items(avl)) {
 		ra_avl_close(avl);
 		RA_TRACE("software");
 		return -1;

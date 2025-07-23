@@ -25,6 +25,6 @@ void *ra_avl_lookup(ra_avl_t avl, const char *key);
 
 int ra_avl_iterate(ra_avl_t avl, ra_avl_fnc_t fnc, void *ctx);
 
-unsigned long ra_avl_size(ra_avl_t avl);
+unsigned long ra_avl_items(ra_avl_t avl);
 
 #endif // _RA_AVL_H_
