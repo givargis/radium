@@ -91,8 +91,8 @@ ann_bist(void)
 
 	// sanity check
 
-	assert( (TRAIN_N + TEST_N) == (n1 / (28 * 28)) );
-	assert( (TRAIN_N + TEST_N) == (n2 / ( 1 *  1)) );
+	assert( (TRAIN_N + TEST_N) * 28 * 28 == n1 );
+	assert( (TRAIN_N + TEST_N) *  1 *  1 == n2 );
 
 	// build model
 
@@ -154,7 +154,7 @@ ann_bist(void)
 
 	// verify
 
-	if ((TEST_N * 0.1) < errors) {
+	if ((TEST_N * 0.05) < errors) {
 		RA_TRACE("software");
 		return -1;
 	}

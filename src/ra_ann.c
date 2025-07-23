@@ -121,8 +121,8 @@ randomize(struct ra_ann *ann)
 	for (int l=1; l<ann->layers; ++l) {
 		int n = size(ann, l);
 		int m = size(ann, l - 1);
-		int a = -sqrt(6.0 / (n * m)) * 1.0;
-		int b = +sqrt(6.0 / (n * m)) * 2.0;
+		double a = -sqrt(6.0 / (n * m)) * 1.0;
+		double b = +sqrt(6.0 / (n * m)) * 2.0;
 		for (int i=0; i<(n*m); ++i) {
 			ann->net[l].w[i]  = a;
 			ann->net[l].w[i] += (rand() / (double)RAND_MAX) * b;
@@ -219,16 +219,14 @@ ra_ann_open(int input, int output, int hidden, int layers)
 	ann->hidden = hidden;
 	ann->layers = layers;
 
-	// initialize
+	// initialize (network)
 
 	if (!(ann->net = malloc(ann->layers * sizeof (ann->net[0])))) {
 		ra_ann_close(ann);
 		RA_TRACE("out of memory");
 		return 0;
 	}
-
-	// initialize
-
+	memset(ann->net, 0, ann->layers * sizeof (ann->net[0]));
 	for (int l=0; l<ann->layers; ++l) {
 		n = size(ann, l);
 		if (!(ann->net[l].a_ = malloc(n * sizeof (ann->net[0].a_))) ||
@@ -240,9 +238,6 @@ ra_ann_open(int input, int output, int hidden, int layers)
 		memset(ann->net[l].a_, 0, n * sizeof (ann->net[0].a_));
 		memset(ann->net[l].d_, 0, n * sizeof (ann->net[0].d_));
 	}
-
-	// initialize
-
 	for (int l=1; l<ann->layers; ++l) {
 		n = size(ann, l);
 		m = size(ann, l - 1);
