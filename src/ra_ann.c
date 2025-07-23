@@ -124,8 +124,7 @@ randomize(struct ra_ann *ann)
 		double a = -sqrt(6.0 / (n * m)) * 1.0;
 		double b = +sqrt(6.0 / (n * m)) * 2.0;
 		for (int i=0; i<(n*m); ++i) {
-			ann->net[l].w[i]  = a;
-			ann->net[l].w[i] += (rand() / (double)RAND_MAX) * b;
+			ann->net[l].w[i] = a + (rand() / (double)RAND_MAX) * b;
 		}
 	}
 }
