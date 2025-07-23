@@ -9,8 +9,8 @@
 
 #include <stddef.h>
 
-#define RA_BASE64_ENCODE_LEN(n) ( RA_DUP((n), 3) * 4 )
-#define RA_BASE64_DECODE_LEN(n) ( RA_DUP((n), 4) * 3 )
+#define RA_BASE64_ENCODE_LEN(n) ( RA_DUP((n), 3) * 4 + 1 )
+#define RA_BASE64_DECODE_LEN(n) ( RA_DUP((n), 4) * 3 + 0 )
 
 void ra_base64_encode(const void *buf, size_t len, char *s);
 
