@@ -132,7 +132,7 @@ randomize(struct ra_ann *ann)
 }
 
 static void
-activate_(struct ra_ann *ann, const double *x)
+activate(struct ra_ann *ann, const double *x)
 {
 	//
 	// a_[0] := x
@@ -156,7 +156,7 @@ activate_(struct ra_ann *ann, const double *x)
 }
 
 static void
-backprop_(struct ra_ann *ann, const double *y)
+backprop(struct ra_ann *ann, const double *y)
 {
 	int l, n, m;
 
@@ -239,9 +239,8 @@ ra_ann_open(int input, int output, int hidden, int layers)
 
 	for (int l=0; l<ann->layers; ++l) {
 		n = size(ann, l);
-		ann->net[l].a_ = malloc(n * sizeof (ann->net[0].a_));
-		ann->net[l].d_ = malloc(n * sizeof (ann->net[0].d_));
-		if (!ann->net[l].a_ || !ann->net[l].d_) {
+		if (!(ann->net[l].a_ = malloc(n * sizeof (ann->net[0].a_))) ||
+		    !(ann->net[l].d_ = malloc(n * sizeof (ann->net[0].d_)))) {
 			ra_ann_close(ann);
 			RA_TRACE("out of memory");
 			return 0;
@@ -304,19 +303,24 @@ ra_ann_activate(ra_ann_t ann, const double *x)
 	assert( ann );
 	assert( x );
 
-	activate_(ann, x);
+	activate(ann, x);
 	return ann->net[ann->layers - 1].a_;
 }
 
 double
-ra_ann_train(ra_ann_t ann, const double *x, const double *y, double eta, int k)
+ra_ann_train(ra_ann_t ann,
+	     const double *x,
+	     const double *y,
+	     double learning_rate,
+	     int batch_size)
 {
 	int n, m;
 
 	assert( ann );
-	assert( x && y );
-	assert( (0.0 < eta) && (1.0 >= eta) );
-	assert( (1 <= k) && (128 >= k) );
+	assert( x );
+	assert( y );
+	assert( (0.0 < learning_rate) && (1.0 >= learning_rate) );
+	assert( (1 <= batch_size) && (1024 >= batch_size) );
 
 	// track error
 
@@ -340,27 +344,27 @@ ra_ann_train(ra_ann_t ann, const double *x, const double *y, double eta, int k)
 	//   backprop()
 	//
 
-	for (int i=0; i<k; ++i) {
-		activate_(ann, x + i * ann->input);
-		backprop_(ann, y + i * ann->output);
+	for (int i=0; i<batch_size; ++i) {
+		activate(ann, x + i * ann->input);
+		backprop(ann, y + i * ann->output);
 	}
 
 	//
-	// w[l] := w[l] - ( (η / k) * w_[l] )
-	// b[l] := b[l] - ( (η / k) * b_[l] )
+	// w[l] := w[l] - ( (η / batch_size) * w_[l] )
+	// b[l] := b[l] - ( (η / batch_size) * b_[l] )
 	//
 
 	for (int l=1; l<ann->layers; ++l) {
 		n = size(ann, l);
 		m = size(ann, l - 1);
-		mac4(ann->net[l].w, ann->net[l].w_, -eta / k, n * m);
-		mac4(ann->net[l].b, ann->net[l].b_, -eta / k, n * 1);
+		mac4(ann->net[l].w,
+		     ann->net[l].w_,
+		     -learning_rate / batch_size,
+		     n * m);
+		mac4(ann->net[l].b,
+		     ann->net[l].b_,
+		     -learning_rate / batch_size,
+		     n * 1);
 	}
 	return sqrt(ann->error);
-}
-
-int
-ra_ann_bist(void)
-{
-	return 0;
 }

@@ -34,8 +34,130 @@
 	} while (0)
 
 static int
+argmax(const double *a, int n)
+{
+	int m;
+
+	m = 0;
+	for (int i=1; i<n; ++i) {
+		if (a[m] < a[i]) {
+			m = i;
+		}
+	}
+	return m;
+}
+
+static int
 ann_bist(void)
 {
+	const int TRAIN_N = 60000;
+	const int TEST_N = 10000;
+	const int BATCH_SIZE = 8;
+	const char *s1, *s2;
+	uint8_t *images;
+	uint8_t *labels;
+	size_t n1, n2;
+	double *x, *y;
+	ra_ann_t ann;
+	int errors;
+
+	// load MNIST data
+
+	if (!(s1 = ra_file_read("../data/images.dat")) ||
+	    !(s2 = ra_file_read("../data/labels.dat"))) {
+		free((void *)s1);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	if (!(images = malloc(RA_BASE64_DECODE_LEN(strlen(s1)))) ||
+	    !(labels = malloc(RA_BASE64_DECODE_LEN(strlen(s2))))) {
+		free((void *)s1);
+		free((void *)s2);
+		free(images);
+		RA_TRACE("out of memory");
+		return -1;
+	}
+	if (ra_base64_decode(images, &n1, s1) ||
+	    ra_base64_decode(labels, &n2, s2)) {
+		free((void *)s1);
+		free((void *)s2);
+		free(images);
+		free(labels);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	free((void *)s1);
+	free((void *)s2);
+
+	// sanity check
+
+	assert( (TRAIN_N + TEST_N) == (n1 / (28 * 28)) );
+	assert( (TRAIN_N + TEST_N) == (n2 / ( 1 *  1)) );
+
+	// build model
+
+	if (!(ann = ra_ann_open(28 * 28, 10, 100, 4))) {
+		free(images);
+		free(labels);
+		RA_TRACE(NULL);
+		return -1;
+	}
+
+	// initialize
+
+	if (!(x = malloc(BATCH_SIZE * 28 * 28 * sizeof (x[0]))) ||
+	    !(y = malloc(BATCH_SIZE *  1 * 10 * sizeof (y[0])))) {
+		free(x);
+		free(images);
+		free(labels);
+		ra_ann_close(ann);
+		RA_TRACE("out of memory");
+		return -1;
+	}
+
+	// train
+
+	for (int i=0; i<(TRAIN_N/BATCH_SIZE); ++i) {
+		for (int j=0; j<BATCH_SIZE; ++j) {
+			for (int k=0; k<(28*28); ++k) {
+				x[j * (28 * 28) + k] = (*images++) / 255.0;
+			}
+			for (int k=0; k<10; ++k) {
+				y[j * 10 + k] = 0.0;
+			}
+			y[j * 10 + (*labels++)] = 1.0;
+		}
+		ra_ann_train(ann, x, y, 0.1, BATCH_SIZE);
+	}
+
+	// test
+
+	errors = 0;
+	for (int i=0; i<TEST_N; ++i) {
+		for (int k=0; k<(28*28); ++k) {
+			x[k] = (*images++) / 255.0;
+		}
+		if (argmax(ra_ann_activate(ann, x), 10) != (int)(*labels++)) {
+			++errors;
+		}
+	}
+
+	// cleanup
+
+	images -= (TRAIN_N + TEST_N) * 28 * 28;
+	labels -= (TRAIN_N + TEST_N) *  1 *  1;
+	free(x);
+	free(y);
+	free(images);
+	free(labels);
+	ra_ann_close(ann);
+
+	// verify
+
+	if ((TEST_N * 0.1) < errors) {
+		RA_TRACE("software");
+		return -1;
+	}
 	return 0;
 }
 

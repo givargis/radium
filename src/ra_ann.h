@@ -18,7 +18,7 @@ const double *ra_ann_activate(ra_ann_t ann, const double *x);
 double ra_ann_train(ra_ann_t ann,
 		    const double *x,
 		    const double *y,
-		    double eta,
-		    int k);
+		    double learning_rate,
+		    int batch_size);
 
 #endif // _RA_ANN_H_
