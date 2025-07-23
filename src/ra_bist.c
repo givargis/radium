@@ -23,21 +23,14 @@
 #include "ra_uint256.h"
 #include "ra_bist.h"
 
-#define BIST(f, m)					\
-	do {						\
-		uint64_t t = ra_time();			\
-		if (f()) {				\
-			t = ra_time() - t;		\
-			ra_log("error: %10s %6.1fs",	\
-			       (m),			\
-			       1e-6*t);			\
-		}					\
-		else {					\
-			t = ra_time() - t;		\
-			ra_log("info:  %10s %6.1fs OK",	\
-			       (m),			\
-			       1e-6*t);			\
-		}					\
+#define BIST(f, m)				\
+	do {					\
+		uint64_t t = ra_time();		\
+		ra_log(f()			\
+		       ? "error: %8s %6.1fs"	\
+		       : "info:  %8s %6.1fs",	\
+		       (m),			\
+		       1e-6 * (ra_time() - t));	\
 	} while (0)
 
 static int
