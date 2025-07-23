@@ -64,8 +64,5 @@ main(int argc, char *argv[])
 	}
 	ra_init(notrace, nocolor);
 	ra_ec_init();
-	if (bist) {
-		return ra_bist();
-	}
-	return stage();
+	return bist ? ra_bist() : stage();
 }
