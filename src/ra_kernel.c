@@ -33,8 +33,7 @@ static void
 color(int color)
 {
 	if (!_nocolor_) {
-		fprintf(stderr, "\033[%dm", 30 + color);
-		fprintf(stderr, "\033[1m");
+		fprintf(stderr, "\033[%dm" "\033[1m", 30 + color);
 	}
 }
 
