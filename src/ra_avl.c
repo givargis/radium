@@ -217,14 +217,14 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 }
 
 static int
-iterate_(struct node *root, ra_avl_fnc_t fnc, void *ctx)
+iterate(struct node *root, ra_avl_fnc_t fnc, void *ctx)
 {
 	int e;
 
 	if (root) {
-		if ((e = iterate_(root->left, fnc, ctx)) ||
+		if ((e = iterate(root->left, fnc, ctx)) ||
 		    (e = fnc(ctx, root->key, (void *)root->val)) ||
-		    (e = iterate_(root->right, fnc, ctx))) {
+		    (e = iterate(root->right, fnc, ctx))) {
 			return e;
 		}
 	}
@@ -319,7 +319,7 @@ ra_avl_iterate(ra_avl_t avl, ra_avl_fnc_t fnc, void *ctx)
 	assert( avl );
 	assert( fnc );
 
-	if ((e = iterate_(avl->root, fnc, ctx))) {
+	if ((e = iterate(avl->root, fnc, ctx))) {
 		return e;
 	}
 	return 0;
