@@ -17,7 +17,6 @@ struct ra_ann {
 	int output;
 	int hidden;
 	int layers;
-	double error;
 	struct {
 		double *w;
 		double *b;
@@ -172,13 +171,6 @@ backprop(struct ra_ann *ann, const double *y)
 
 	sub(ann->net[l].d_, ann->net[l].a_, y, size(ann, l));
 
-	// track error
-
-	n = size(ann, l);
-	for (int i=0; i<n; ++i) {
-		ann->error += ann->net[l].d_[i] * ann->net[l].d_[i];
-	}
-
 	//
 	// d_[l] := (w[l+1]' * d_[l+1]) ⊙ σ′(a_[l])
 	//
@@ -307,7 +299,7 @@ ra_ann_activate(ra_ann_t ann, const double *x)
 	return ann->net[ann->layers - 1].a_;
 }
 
-double
+void
 ra_ann_train(ra_ann_t ann,
 	     const double *x,
 	     const double *y,
@@ -321,10 +313,6 @@ ra_ann_train(ra_ann_t ann,
 	assert( y );
 	assert( (0.0 < learning_rate) && (1.0 >= learning_rate) );
 	assert( (1 <= batch_size) && (1024 >= batch_size) );
-
-	// track error
-
-	ann->error = 0.0;
 
 	//
 	// w_[*] := 0.0
@@ -366,5 +354,4 @@ ra_ann_train(ra_ann_t ann,
 		     -learning_rate / batch_size,
 		     n * 1);
 	}
-	return sqrt(ann->error);
 }
