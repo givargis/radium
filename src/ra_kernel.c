@@ -33,7 +33,7 @@ static void
 color(int color)
 {
 	if (!_nocolor_) {
-		fprintf(stderr, "\033[%dm" "\033[1m", 30 + color);
+		fprintf(stderr, "\033[%dm" "\033[1m", color);
 	}
 }
 
@@ -147,17 +147,17 @@ ra_log(const char *format, ...)
 	if (strncmp(format, "trace:", 6) || !_notrace_) {
 		if (!strncmp(format, "trace:", 6)) {
 			format += 6;
-			color(6); // cyan
+			color(36); // cyan
 			printf("trace:");
 		}
 		else if (!strncmp(format, "error:", 6)) {
 			format += 6;
-			color(1); // red
+			color(31); // red
 			printf("error:");
 		}
 		else if (!strncmp(format, "info:", 5)) {
 			format += 5;
-			color(0); // black
+			color(30); // black
 			printf("info:");
 		}
 		va_start(ap, format);
