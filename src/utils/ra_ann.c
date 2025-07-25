@@ -414,8 +414,8 @@ ra_ann_bist(void)
 
 	// sanity check
 
-	assert( (TRAIN_N + TEST_N) * 28 * 28 == n1 );
-	assert( (TRAIN_N + TEST_N) *  1 *  1 == n2 );
+	assert( (size_t)(TRAIN_N + TEST_N) * 28 * 28 == n1 );
+	assert( (size_t)(TRAIN_N + TEST_N) *  1 *  1 == n2 );
 
 	// build model
 
