@@ -10,10 +10,11 @@
 #include "ra_kernel.h"
 #include "ra_bist.h"
 #include "ra_ec.h"
-
+void x(void);
 static int
 stage(void)
 {
+	x();
 	return 0;
 }
 

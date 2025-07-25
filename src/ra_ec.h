@@ -19,11 +19,11 @@
 
 void ra_ec_init(void);
 
-//
-//  <---------- buf --------->
-//  <- n -><- n -> ... <- n ->
-//     0      1    ...    k
-//
+/**
+ *  <---------- buf --------->
+ *  <- n -><- n -> ... <- n ->
+ *     0      1    ...    k
+ **/
 
 void ra_ec_encode_pq(void *buf, int k, int n);
 

@@ -1,0 +1,22 @@
+//
+// Copyright (c) Tony Givargis, 2024-2025
+//
+// ra_bigint.h
+//
+
+#ifndef _RA_BIGINT_H_
+#define _RA_BIGINT_H_
+
+typedef struct ra_bigint *ra_bigint_t;
+
+ra_bigint_t ra_bigint_init(const char *s);
+
+ra_bigint_t ra_bigint_add(ra_bigint_t a, ra_bigint_t b);
+
+ra_bigint_t ra_bigint_sub(ra_bigint_t a, ra_bigint_t b);
+
+ra_bigint_t ra_bigint_mul(ra_bigint_t a, ra_bigint_t b);
+
+void ra_bigint_free(ra_bigint_t bigint);
+
+#endif // _RA_BIGINT_H_

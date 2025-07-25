@@ -132,14 +132,14 @@ randomize(struct ra_ann *ann)
 static void
 activate(struct ra_ann *ann, const double *x)
 {
-	//
-	// a_[0] := x
-	// a_[l] := activation( w[l] * a_[l - 1] + b[l] )
-	//
-	// activation:
-	//    RELU - internal
-	//    LINEAR - output
-	//
+	/**
+	 * a_[0] := x
+	 * a_[l] := activation( w[l] * a_[l - 1] + b[l] )
+	 *
+	 * activation:
+	 *    RELU - internal
+	 *    LINEAR - output
+	 **/
 
 	memcpy(ann->net[0].a_, x, size(ann, 0) * sizeof (ann->net[0].a_[0]));
 	for (int l=1; l<ann->layers; ++l) {
@@ -162,17 +162,17 @@ backprop(struct ra_ann *ann, const double *y)
 
 	l = ann->layers - 1;
 
-	//
-	// Quadratic Cost Function
-	//
-	// d_[L] := a_[L] − y
-	//
+	/**
+	 * Quadratic Cost Function
+	 *
+	 * d_[L] := a_[L] − y
+	 **/
 
 	sub(ann->net[l].d_, ann->net[l].a_, y, size(ann, l));
 
-	//
-	// d_[l] := (w[l+1]' * d_[l+1]) ⊙ σ′(a_[l])
-	//
+	/**
+	 * d_[l] := (w[l+1]' * d_[l+1]) ⊙ σ′(a_[l])
+	 **/
 
 	while (1 < l) {
 		n = size(ann, l);
@@ -182,10 +182,10 @@ backprop(struct ra_ann *ann, const double *y)
 		--l;
 	}
 
-	//
-	// b_[l] := b_[l] + d_[l]
-	// w_[l] := w_[l] + d_[l] * a_[l - 1]
-	//
+	/**
+	 * b_[l] := b_[l] + d_[l]
+	 * w_[l] := w_[l] + d_[l] * a_[l - 1]
+	 **/
 
 	for (l=1; l<ann->layers; ++l) {
 		n = size(ann, l);
@@ -308,10 +308,10 @@ ra_ann_train(ra_ann_t ann,
 	assert( (0.0 < learning_rate) && (1.0 >= learning_rate) );
 	assert( (1 <= batch_size) && (1024 >= batch_size) );
 
-	//
-	// w_[*] := 0.0
-	// b_[*] := 0.0
-	//
+	/**
+	 * w_[*] := 0.0
+	 * b_[*] := 0.0
+	 **/
 
 	for (int l=1; l<ann->layers; ++l) {
 		n = size(ann, l);
@@ -320,21 +320,21 @@ ra_ann_train(ra_ann_t ann,
 		memset(ann->net[l].b_, 0, n * 1 * sizeof (ann->net[0].b[0]));
 	}
 
-	//
-	// for all (x -> y):
-	//   activate()
-	//   backprop()
-	//
+	/**
+	 * for all (x -> y):
+	 *   activate()
+	 *   backprop()
+	 **/
 
 	for (int i=0; i<batch_size; ++i) {
 		activate(ann, x + i * ann->input);
 		backprop(ann, y + i * ann->output);
 	}
 
-	//
-	// w[l] := w[l] - ( (η / batch_size) * w_[l] )
-	// b[l] := b[l] - ( (η / batch_size) * b_[l] )
-	//
+	/**
+	 * w[l] := w[l] - ( (η / batch_size) * w_[l] )
+	 * b[l] := b[l] - ( (η / batch_size) * b_[l] )
+	 **/
 
 	for (int l=1; l<ann->layers; ++l) {
 		n = size(ann, l);
