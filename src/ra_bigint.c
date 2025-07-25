@@ -67,6 +67,15 @@ hex2int(int c)
 }
 
 static int
+bin2int(int c)
+{
+	if (('0' <= c) && ('1' >= c)) {
+		return c - '0';
+	}
+	return -1;
+}
+
+static int
 dec2int(int c)
 {
 	if (('0' <= c) && ('9' >= c)) {
@@ -285,6 +294,12 @@ ra_bigint_init(const char *s)
 			++s;
 			++s;
 		}
+		else if (('0' == s[0]) && (('b' == s[1]) || ('B' == s[1]))) {
+			p2v = bin2int;
+			m = 2;
+			++s;
+			++s;
+		}
 		while (*s) {
 			if (0 > (v = p2v((unsigned char)(*s++)))) {
 				ra_bigint_free(z);
@@ -419,10 +434,10 @@ static void print(struct ra_bigint *bigint, const char *name) {
 }
 
 void x(void) {
-	ra_bigint_t a = ra_bigint_init("7");
+	ra_bigint_t a = ra_bigint_init("0b1111");
 	print(a, "a");
 
-	ra_bigint_t b = ra_bigint_init("4");
+	ra_bigint_t b = ra_bigint_init("0xff");
 	print(b, "b");
 
 	ra_bigint_t q, r;
