@@ -288,7 +288,7 @@ ra_bigint_init(const char *s)
 		while (*s) {
 			if (0 > (v = p2v((unsigned char)(*s++)))) {
 				ra_bigint_free(z);
-				RA_TRACE("invalid integer value");
+				RA_TRACE("argument");
 				return NULL;
 			}
 			if (!(a = ra_bigint_mul(z, (ra_bigint_t)&C[m])) ||
