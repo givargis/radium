@@ -80,7 +80,7 @@ allocate(int size)
 {
 	struct ra_bigint *bigint;
 
-	assert( size );
+	assert( 0 < size );
 
 	if (MAX_DIGITS < size) {
 		RA_TRACE("integer too large");
