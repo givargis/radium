@@ -27,7 +27,8 @@
 		}							\
 	} while (0)
 
-#define IS_ZERO(a) ( (1 < (a)->width) || !(a)->digits[0] )
+#define IS_ZERO(a) ( (1 == (a)->width) && (0 == (a)->digits[0]) )
+#define IS_ONE(a)  ( (1 == (a)->width) && (1 == (a)->digits[0]) )
 
 struct ra_bigint {
 	int sign;
@@ -78,10 +79,42 @@ dec2int(int c)
 	return -1;
 }
 
+static void
+mul(uint64_t *h, uint64_t *l, uint64_t a, uint64_t b)
+{
+	// hardware
+
+#ifdef __SIZEOF_INT128__
+	__uint128_t t = (__uint128_t)a * (__uint128_t)b;
+	(*h) = (uint64_t)(t >> 64);
+	(*l) = (uint64_t)t;
+	return;
+#endif
+
+	// emulated
+
+	uint64_t ah = a >> 32;
+	uint64_t al = a & 0xffffffff;
+	uint64_t bh = b >> 32;
+	uint64_t bl = b & 0xffffffff;
+	uint64_t t1 = bl * al;
+	uint64_t t2 = bl * ah;
+	uint64_t t3 = bh * al;
+	uint64_t t4 = bh * ah;
+	t2 += t1 >> 32;
+	t3 += t2;
+	if (t3 < t2) {
+		t4 += 1LU << 32;
+	}
+	t4 += t3 >> 32;
+	(*h) = t4;
+	(*l) = (t3 << 32) | (t1 & 0xffffffff);
+}
+
 static struct ra_bigint *
 allocate(int width)
 {
-	struct ra_bigint *bigint;
+	struct ra_bigint *z;
 
 	assert( 0 < width );
 
@@ -89,19 +122,32 @@ allocate(int width)
 		RA_TRACE("integer too large");
 		return NULL;
 	}
-	if (!(bigint = malloc(sizeof (struct ra_bigint)))) {
+	if (!(z = malloc(sizeof (struct ra_bigint)))) {
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	memset(bigint, 0, sizeof (struct ra_bigint));
-	bigint->width = width;
-	bigint->digits = malloc(bigint->width * sizeof (bigint->digits[0]));
-	if (!bigint->digits) {
-		free(bigint);
+	memset(z, 0, sizeof (struct ra_bigint));
+	z->width = width;
+	if (!(z->digits = malloc(z->width * sizeof (z->digits[0])))) {
+		free(z);
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	return bigint;
+	return z;
+}
+
+static struct ra_bigint *
+clone(const struct ra_bigint *a)
+{
+	struct ra_bigint *z;
+
+	if (!(z = allocate(a->width))) {
+		RA_TRACE(NULL);
+		return NULL;
+	}
+	z->sign = a->sign;
+	memcpy(z->digits, a->digits, z->width * sizeof (z->digits[0]));
+	return z;
 }
 
 static struct ra_bigint *
@@ -235,36 +281,19 @@ addsub(const struct ra_bigint *a, const struct ra_bigint *b)
 	return z;
 }
 
-static void
-mul(uint64_t *h, uint64_t *l, uint64_t a, uint64_t b)
+static int
+divmod(const struct ra_bigint *a,
+       const struct ra_bigint *b,
+       struct ra_bigint *q,
+       struct ra_bigint *r)
 {
-	// hardware
-
-#ifdef __SIZEOF_INT128__
-	__uint128_t t = (__uint128_t)a * (__uint128_t)b;
-	(*h) = (uint64_t)(t >> 64);
-	(*l) = (uint64_t)t;
-	return;
-#endif
-
-	// emulated
-
-	uint64_t ah = a >> 32;
-	uint64_t al = a & 0xffffffff;
-	uint64_t bh = b >> 32;
-	uint64_t bl = b & 0xffffffff;
-	uint64_t t1 = bl * al;
-	uint64_t t2 = bl * ah;
-	uint64_t t3 = bh * al;
-	uint64_t t4 = bh * ah;
-	t2 += t1 >> 32;
-	t3 += t2;
-	if (t3 < t2) {
-		t4 += 1LU << 32;
-	}
-	t4 += t3 >> 32;
-	(*h) = t4;
-	(*l) = (t3 << 32) | (t1 & 0xffffffff);
+	(void)a;
+	(void)b;
+	SET(q, 0);
+	SET(r, 0);
+	NORMALIZE(q);
+	NORMALIZE(r);
+	return 0;
 }
 
 ra_bigint_t
@@ -391,38 +420,116 @@ ra_bigint_mul(ra_bigint_t a, ra_bigint_t b)
 int
 ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 {
+	int d;
+
 	assert( a && a->width );
 	assert( b && b->width );
 	assert( q );
 	assert( r );
 
-	(*q) = (*r) = NULL;
+	// (0 == b) => (q=?, r=?)
+
 	if (IS_ZERO(b)) {
+		(*q) = (*r) = NULL;
 		RA_TRACE("divide by zero");
 		return -1;
 	}
+
+	// (1 == b) => (q=a, r=0)
+
+	if (IS_ONE(b)) {
+		if (!((*q) = clone(a)) || !((*r) = clone(&C[0]))) {
+			ra_bigint_free(*q);
+			RA_TRACE(NULL);
+			return -1;
+		}
+		return 0;
+	}
+
+	// (a == b) => (q=1, r=0)
+	// (a  < b) => (q=0, r=a)
+
+	if (!(d = ra_bigint_cmp(a, b))) {
+		if (!((*q) = clone(&C[1])) || !((*r) = clone(&C[0]))) {
+			ra_bigint_free(*q);
+			RA_TRACE(NULL);
+			return -1;
+		}
+		return 0;
+	}
+	if (0 > d) {
+		if (!((*q) = clone(&C[0])) || !((*r) = clone(a))) {
+			ra_bigint_free(*q);
+			RA_TRACE(NULL);
+			return -1;
+		}
+		return 0;
+	}
+
+	// divide
+
 	if (!((*q) = allocate(RA_MAX(1, a->width - b->width))) ||
 	    !((*r) = allocate(b->width))) {
 		ra_bigint_free(*q);
 		RA_TRACE(NULL);
 		return -1;
 	}
-	SET((*q), 0);
-	SET((*r), 0);
-
-	NORMALIZE((*q));
-	NORMALIZE((*r));
+	if (divmod(a, b, (*q), (*r))) {
+		ra_bigint_free(*q);
+		ra_bigint_free(*r);
+		RA_TRACE(NULL);
+		return -1;
+	}
 	return 0;
 }
 
 void
-ra_bigint_free(ra_bigint_t bigint)
+ra_bigint_free(ra_bigint_t a)
 {
-	if (bigint) {
-		free(bigint->digits);
-		memset(bigint, 0, sizeof (struct ra_bigint));
+	if (a) {
+		free(a->digits);
+		memset(a, 0, sizeof (struct ra_bigint));
 	}
-	free(bigint);
+	free(a);
+}
+
+int
+ra_bigint_cmp(ra_bigint_t a, ra_bigint_t b)
+{
+	assert( a && a->digits );
+	assert( b && b->digits );
+
+	if (a->width > b->width) {
+		return +1;
+	}
+	if (a->width < b->width) {
+		return -1;
+	}
+	for (int i=a->width-1; i>=0; --i) {
+		if (a->digits[i] > b->digits[i]) {
+			return +1;
+		}
+		if (a->digits[i] < b->digits[i]) {
+			return -1;
+		}
+	}
+	return 0;
+}
+
+int
+ra_bigint_is_zero(ra_bigint_t a)
+{
+	assert( a && a->digits );
+
+	return IS_ZERO(a);
+}
+
+int
+ra_bigint_is_one(ra_bigint_t a)
+{
+	assert( a && a->digits );
+
+	return IS_ONE(a);
 }
 
 int
@@ -439,17 +546,19 @@ static void print(struct ra_bigint *bigint, const char *name) {
 }
 
 void x(void) {
-	ra_bigint_t a = ra_bigint_init("0b1111");
-	print(a, "a");
+	ra_bigint_t a = ra_bigint_init("0xf29487324875928475927459827928745218943719837491827349872954792873492874937829837492387497923784982374982374987412");
 
-	ra_bigint_t b = ra_bigint_init("0xff");
-	print(b, "b");
+	ra_bigint_t b = ra_bigint_init("1");
 
 	ra_bigint_t q, r;
+
 	if (!ra_bigint_divmod(a, b, &q, &r)) {
+		print(a, "a");
+		print(b, "b");
 		print(q, "q");
 		print(r, "r");
 	}
+
 	ra_bigint_free(a);
 	ra_bigint_free(b);
 	ra_bigint_free(q);

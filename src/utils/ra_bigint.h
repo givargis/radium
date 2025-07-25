@@ -24,7 +24,13 @@ int ra_bigint_divmod(ra_bigint_t a,
 		     ra_bigint_t *r,
 		     ra_bigint_t *q);
 
-void ra_bigint_free(ra_bigint_t bigint);
+void ra_bigint_free(ra_bigint_t a);
+
+int ra_bigint_cmp(ra_bigint_t a, ra_bigint_t b);
+
+int ra_bigint_is_zero(ra_bigint_t a);
+
+int ra_bigint_is_one(ra_bigint_t a);
 
 int ra_bigint_bist(void);
 
