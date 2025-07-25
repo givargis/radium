@@ -22,8 +22,8 @@
 
 #define NORMALIZE(z)							\
 	do {								\
-		while ((z)->size && (z)->digits[(z)->size - 1]) {	\
-			(z)->size--;					\
+		while ((z)->size && !(z)->digits[(z)->size - 1]) {	\
+			--(z)->size;					\
 		}							\
 		if (!z->size) {						\
 			z->size = 1;					\
@@ -37,6 +37,18 @@ struct ra_bigint {
 	uint64_t *digits;
 };
 
+static uint64_t _C[]  = {
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+};
+
+static const struct ra_bigint C[] = {
+	{ 0,1, &_C[ 0] }, { 0,1, &_C[ 1] }, { 0,1, &_C[ 2] }, { 0,1, &_C[ 3] },
+	{ 0,1, &_C[ 4] }, { 0,1, &_C[ 5] }, { 0,1, &_C[ 6] }, { 0,1, &_C[ 7] },
+	{ 0,1, &_C[ 8] }, { 0,1, &_C[ 9] }, { 0,1, &_C[10] }, { 0,1, &_C[11] },
+	{ 0,1, &_C[12] }, { 0,1, &_C[13] }, { 0,1, &_C[14] }, { 0,1, &_C[15] },
+	{ 0,1, &_C[16] }
+};
+
 static int
 hex2int(int c)
 {
@@ -46,16 +58,6 @@ hex2int(int c)
 	}
 	if (('a' <= c) && ('f' >= c)) {
 		return 15 + c - 'f';
-	}
-	return -1;
-}
-
-static int
-oct2int(int c)
-{
-	c = tolower(c);
-	if (('0' <= c) && ('7' >= c)) {
-		return c - '0';
 	}
 	return -1;
 }
@@ -73,6 +75,8 @@ static struct ra_bigint *
 allocate(int size)
 {
 	struct ra_bigint *bigint;
+
+	assert( size );
 
 	if (!(bigint = malloc(sizeof (struct ra_bigint)))) {
 		RA_TRACE("out of memory");
@@ -96,6 +100,8 @@ add(const struct ra_bigint *a, const struct ra_bigint *b)
 	uint64_t a_, b_, z_;
 	int i, c;
 
+	assert( a->size <= b->size );
+
 	if (!(z = allocate(RA_MAX(a->size, b->size) + 1))) {
 		RA_TRACE(NULL);
 		return NULL;
@@ -108,7 +114,6 @@ add(const struct ra_bigint *a, const struct ra_bigint *b)
 		z->digits[i] = z_;
 	}
 	for (; i<b->size; ++i) {
-		a_ = a->digits[i];
 		b_ = b->digits[i];
 		z_ = b_ + c;
 		c = (!z_ && c);
@@ -125,6 +130,9 @@ sub(const struct ra_bigint *a, const struct ra_bigint *b)
 	struct ra_bigint *z;
 	uint64_t a_, b_, z_;
 	int i, c;
+
+	assert( a->size <= b->size );
+	assert( !a->neg || !b->neg );
 
 	if (!(z = allocate(RA_MAX(a->size, b->size)))) {
 		RA_TRACE(NULL);
@@ -243,62 +251,52 @@ mul(uint64_t *h, uint64_t *l, uint64_t a, uint64_t b)
 #endif
 }
 
-static int
-parse(struct ra_bigint *bigint, const char *s)
-{
-	int (*p2v)(int);
-	int base, v;
-
-	(void)bigint;
-	(void)base;
-
-	if (('0' == s[0]) && (('x' == s[1]) || ('X' == s[1]))) {
-		s += 2;
-		p2v = hex2int;
-		base = 16;
-	}
-	else if (('0' == s[0]) && ('\0' != s[1])) {
-		s += 1;
-		p2v = oct2int;
-		base = 8;
-	}
-	else {
-		p2v = dec2int;
-		base = 10;
-	}
-	while (*s) {
-		if (0 > (v = p2v((unsigned char)(*s++)))) {
-			RA_TRACE("invalid integer value");
-			return -1;
-		}
-/*
-  SET(a, v);
-  if (ra_uint256_mul(z, z, m) ||
-  ra_uint256_add(z, z, a)) {
-  RA_TRACE(NULL);
-  return -1;
-  }
-*/
-	}
-	return 0;
-}
-
 ra_bigint_t
 ra_bigint_init(const char *s)
 {
-	struct ra_bigint *bigint;
+	struct ra_bigint *a, *b, *z;
+	int (*p2v)(int);
+	int neg, m, v;
 
-	if (!(bigint = allocate(2))) { // FIX
+	if (!(z = allocate(1))) {
 		RA_TRACE(NULL);
 		return NULL;
 	}
-	SET(bigint, 0);
-	if (s && strlen(s) && parse(bigint, s)) {
-		ra_bigint_free(bigint);
-		RA_TRACE(NULL);
-		return NULL;
+	SET(z, 0);
+	if (s) {
+		m = 10;
+		neg = 0;
+		p2v = dec2int;
+		if ('-' == (*s)) {
+			neg = 1;
+			++s;
+		}
+		if (('0' == s[0]) && (('x' == s[1]) || ('X' == s[1]))) {
+			p2v = hex2int;
+			m = 16;
+			++s;
+			++s;
+		}
+		while (*s) {
+			if (0 > (v = p2v((unsigned char)(*s++)))) {
+				ra_bigint_free(z);
+				RA_TRACE("invalid integer value");
+				return NULL;
+			}
+			if (!(a = ra_bigint_mul(z, (ra_bigint_t)&C[m])) ||
+			    !(b = ra_bigint_add(a, (ra_bigint_t)&C[v]))) {
+				ra_bigint_free(a);
+				ra_bigint_free(z);
+				RA_TRACE(NULL);
+				return NULL;
+			}
+			ra_bigint_free(a);
+			ra_bigint_free(z);
+			z = b;
+		}
+		z->neg = neg;
 	}
-	return bigint;
+	return z;
 }
 
 ra_bigint_t
@@ -347,22 +345,24 @@ ra_bigint_mul(ra_bigint_t a, ra_bigint_t b)
 		RA_TRACE(NULL);
 		return NULL;
 	}
-	h = 0;
 	SET(z, 0);
 	for (int i=0; i<a->size; ++i) {
 		for (int j=0; j<b->size; ++j) {
-			z->digits[i + j] += h;
-			assert( z->digits[i + j] >= h );
 			mul(&h, &l, a->digits[i], b->digits[j]);
 			z->digits[i + j] += l;
-			assert( z->digits[i + j] >= l );
+			if (z->digits[i + j] < l) {
+				int k = i + j + 1;
+				while(!(++z->digits[k++]));
+			}
+			z->digits[i + j + 1] += h;
+			if (z->digits[i + j + 1] < h) {
+				int k = i + j + 2;
+				while(!(++z->digits[k++]));
+			}
 		}
 	}
 	z->neg = a->neg ^ b->neg;
-
-	ra_log("%d\n", z->size);
 	NORMALIZE(z);
-	ra_log("%d\n", z->size);
 	return z;
 }
 
@@ -384,18 +384,16 @@ static void print(struct ra_bigint *bigint, const char *name) {
 }
 
 void x(void) {
-	ra_bigint_t a = ra_bigint_init("");
-	ra_bigint_t b = ra_bigint_init("");
+	ra_bigint_t a = ra_bigint_init("0xffffffffffffffffffffffffffffffffffffffffffffffff");
+	print(a, "a");
 
-	SET(a, 0xffffffffffffffff);
-	SET(b, 0xffffffffffffffff);
+	ra_bigint_t b = ra_bigint_init("0xffffffffffffffffffffffffffffffffffffffffffffffff");
+	print(b, "b");
 
 	ra_bigint_t x = ra_bigint_mul(a, b);
-	ra_bigint_t y = ra_bigint_mul(x, b);
-
-	print(a, "a");
-	print(b, "b");
 	print(x, "x");
+
+	ra_bigint_t y = ra_bigint_mul(x, b);
 	print(y, "y");
 
 	ra_bigint_free(a);
