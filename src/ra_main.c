@@ -1,16 +1,14 @@
-//
-// Copyright (c) Tony Givargis, 2024-2025
-//
-// ra_main.c
-//
+/**
+ * Copyright (c) Tony Givargis, 2024-2025
+ *
+ * ra_main.c
+ */
 
-#include <string.h>
-#include <stdio.h>
+#include "root/ra_root.h"
+#include "utils/ra_utils.h"
 
-#include "ra_kernel.h"
-#include "ra_bist.h"
-#include "ra_ec.h"
 void x(void);
+
 static int
 stage(void)
 {
@@ -63,7 +61,7 @@ main(int argc, char *argv[])
 			return -1;
 		}
 	}
-	ra_init(notrace, nocolor);
-	ra_ec_init();
-	return bist ? ra_bist() : stage();
+	ra_root_init(notrace, nocolor);
+	ra_utils_init();
+	return bist ? ra_utils_bist() : stage();
 }
