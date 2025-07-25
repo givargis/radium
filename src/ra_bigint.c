@@ -12,7 +12,7 @@
 #include "ra_kernel.h"
 #include "ra_bigint.h"
 
-#define MAX_DIGITS 256
+#define MAX_DIGITS 1024
 
 #define SET(z, v)						\
 	do {							\
