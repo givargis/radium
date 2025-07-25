@@ -382,6 +382,7 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 	assert( q );
 	assert( r );
 
+	(*q) = (*r) = NULL;
 	if (IS_ZERO(b)) {
 		RA_TRACE("divide by zero");
 		return -1;
@@ -395,6 +396,8 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 	SET((*q), 0);
 	SET((*r), 0);
 
+	NORMALIZE((*q));
+	NORMALIZE((*r));
 	return 0;
 }
 
@@ -416,20 +419,19 @@ static void print(struct ra_bigint *bigint, const char *name) {
 }
 
 void x(void) {
-	ra_bigint_t a = ra_bigint_init("");
+	ra_bigint_t a = ra_bigint_init("7");
 	print(a, "a");
 
-	ra_bigint_t b = ra_bigint_init("0x2");
+	ra_bigint_t b = ra_bigint_init("4");
 	print(b, "b");
 
-	ra_bigint_t x = ra_bigint_mul(a, b);
-	print(x, "x");
-
-	ra_bigint_t y = ra_bigint_mul(x, b);
-	print(y, "y");
-
+	ra_bigint_t q, r;
+	if (!ra_bigint_divmod(a, b, &q, &r)) {
+		print(q, "q");
+		print(r, "r");
+	}
 	ra_bigint_free(a);
 	ra_bigint_free(b);
-	ra_bigint_free(x);
-	ra_bigint_free(y);
+	ra_bigint_free(q);
+	ra_bigint_free(r);
 }
