@@ -17,6 +17,11 @@ ra_bigint_t ra_bigint_sub(ra_bigint_t a, ra_bigint_t b);
 
 ra_bigint_t ra_bigint_mul(ra_bigint_t a, ra_bigint_t b);
 
+int ra_bigint_divmod(ra_bigint_t a,
+		     ra_bigint_t b,
+		     ra_bigint_t *r,
+		     ra_bigint_t *q);
+
 void ra_bigint_free(ra_bigint_t bigint);
 
 #endif // _RA_BIGINT_H_

@@ -12,6 +12,8 @@
 #include "ra_kernel.h"
 #include "ra_bigint.h"
 
+#define MAX_DIGITS 256
+
 #define SET(z, v)						\
 	do {							\
 		memset((z)->digits,				\
@@ -30,6 +32,8 @@
 			(z)->neg = 0;					\
 		}							\
 	} while (0)
+
+#define IS_ZERO(a) ( (1 < (a)->size) || !(a)->digits[0] )
 
 struct ra_bigint {
 	int neg;
@@ -78,6 +82,10 @@ allocate(int size)
 
 	assert( size );
 
+	if (MAX_DIGITS < size) {
+		RA_TRACE("integer too large");
+		return NULL;
+	}
 	if (!(bigint = malloc(sizeof (struct ra_bigint)))) {
 		RA_TRACE("out of memory");
 		return NULL;
@@ -366,6 +374,30 @@ ra_bigint_mul(ra_bigint_t a, ra_bigint_t b)
 	return z;
 }
 
+int
+ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
+{
+	assert( a && a->size );
+	assert( b && b->size );
+	assert( q );
+	assert( r );
+
+	if (IS_ZERO(b)) {
+		RA_TRACE("divide by zero");
+		return -1;
+	}
+	if (!((*q) = allocate(RA_MAX(1, a->size - b->size))) ||
+	    !((*r) = allocate(b->size))) {
+		ra_bigint_free(*q);
+		RA_TRACE(NULL);
+		return -1;
+	}
+	SET((*q), 0);
+	SET((*r), 0);
+
+	return 0;
+}
+
 void
 ra_bigint_free(ra_bigint_t bigint)
 {
@@ -384,10 +416,10 @@ static void print(struct ra_bigint *bigint, const char *name) {
 }
 
 void x(void) {
-	ra_bigint_t a = ra_bigint_init("0xffffffffffffffffffffffffffffffffffffffffffffffff");
+	ra_bigint_t a = ra_bigint_init("");
 	print(a, "a");
 
-	ra_bigint_t b = ra_bigint_init("0xffffffffffffffffffffffffffffffffffffffffffffffff");
+	ra_bigint_t b = ra_bigint_init("0x2");
 	print(b, "b");
 
 	ra_bigint_t x = ra_bigint_mul(a, b);
