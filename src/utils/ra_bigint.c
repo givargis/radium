@@ -518,13 +518,28 @@ ra_bigint_is_perfect_square(ra_bigint_t a)
 	if (!a->width) {
 		return 1;
 	}
-	l = clone(&C[1]);
-	h = ra_bigint_div(a, &C[2]);
+	if (!(l = clone(&C[1])) || !(h = ra_bigint_div(a, &C[2]))) {
+		ra_bigint_free(l);
+		RA_TRACE(NULL);
+		return -1;
+	}
 	while (0 >= ra_bigint_cmp(l, h)) {
-		t = ra_bigint_add(l, h);
-		m = ra_bigint_div(t, &C[2]);
+		if (!(t = ra_bigint_add(l, h)) ||
+		    !(m = ra_bigint_div(t, &C[2]))) {
+			ra_bigint_free(t);
+			ra_bigint_free(l);
+			ra_bigint_free(h);
+			RA_TRACE(NULL);
+			return -1;
+		}
 		ra_bigint_free(t);
-		t = ra_bigint_mul(m, m);
+		if (!(t = ra_bigint_mul(m, m))) {
+			ra_bigint_free(m);
+			ra_bigint_free(l);
+			ra_bigint_free(h);
+			RA_TRACE(NULL);
+			return -1;
+		}
 		d = ra_bigint_cmp(t, a);
 		ra_bigint_free(t);
 		if (!d) {
@@ -535,11 +550,21 @@ ra_bigint_is_perfect_square(ra_bigint_t a)
 		}
 		else if (0 > d) {
 			ra_bigint_free(l);
-			l = ra_bigint_add(m, &C[1]);
+			if (!(l = ra_bigint_add(m, &C[1]))) {
+				ra_bigint_free(m);
+				ra_bigint_free(h);
+				RA_TRACE(NULL);
+				return -1;
+			}
 		}
 		else {
 			ra_bigint_free(h);
-			h = ra_bigint_sub(m, &C[1]);
+			if (!(h = ra_bigint_sub(m, &C[1]))) {
+				ra_bigint_free(m);
+				ra_bigint_free(l);
+				RA_TRACE(NULL);
+				return -1;
+			}
 		}
 		ra_bigint_free(m);
 	}
