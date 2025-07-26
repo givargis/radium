@@ -473,7 +473,6 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 	assert( r );
 
 	if (!b->width) {
-		(*q) = (*r) = NULL;
 		RA_TRACE("arithmetic");
 		return -1;
 	}
