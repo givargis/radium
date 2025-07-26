@@ -28,7 +28,7 @@
 		}							\
 	} while (0)
 
-#define IS_ONE(a)  ( (1 == (a)->width) && (1 == (a)->digits[0]) )
+#define IS_ONE(a) ( (1 == (a)->width) && (1 == (a)->digits[0]) )
 
 struct ra_bigint {
 	int sign;
@@ -234,23 +234,15 @@ sub(const struct ra_bigint *a, const struct ra_bigint *b)
 		a_ = a->digits[i];
 		b_ = b->digits[i];
 		z_ = a_ - b_ - c;
-		if (a_ < (b_ + c)) {
-			z_ = ~z_ + 1;
-			c = 1;
-		}
-		else {
-			c = 0;
-		}
+		c = (a_ < (b_ + c));
 		z->digits[i] = z_;
+		ra_log("c=%d\n", c);
 	}
 	for (; i<b->width; ++i) {
 		b_ = b->digits[i];
 		z_ = b_ - c;
-		if (!b_ && c) {
+		if ((c = (!z_ && c))) {
 			z_ = ~z_ + 1;
-		}
-		else {
-			c = 0;
 		}
 		z->digits[i] = z_;
 	}
@@ -322,25 +314,13 @@ divmod(struct ra_bigint *a,
        struct ra_bigint *q,
        struct ra_bigint *r)
 {
-	const int WA = a->width;
-	const int WB = b->width;
-	int i;
-
 	assert( a->width >= b->width );
 
-	i = WB;
-	while (i < WA) {
-		a->width = i;
-		if (0 < cmp(a, b)) {
-			ra_log("found @%d", i);
-			break;
-		}
-		++i;
-	}
-	a->width = WA;
+	(void)a;
+	(void)b;
 
-	SET(q, 0);
-	SET(r, 0);
+	// FIX : not implemented
+
 	NORMALIZE(q);
 	NORMALIZE(r);
 	return 0;
@@ -580,7 +560,7 @@ ra_bigint_bist(void)
 {
 	ra_bigint_t a, b, t1, t2, t3, t4;
 
-	// create and verify Fibonacci numbers
+	// verify Fibonacci numbers
 
 	if (!(a = ra_bigint_init("0")) || !(b = ra_bigint_init("1"))) {
 		RA_TRACE(NULL);
@@ -654,7 +634,17 @@ divmod_(struct ra_bigint *a,
 		}
 		else {
 			(*q) = ra_bigint_add(q2, &C[1]);
+
+			assert( !r_->sign );
+			assert( !b->sign );
+
 			(*r) = ra_bigint_sub(r_, b);
+
+			if ( (*r)->sign ) {
+				print(r_, "r_");
+				print(b, "b");
+				exit(-1);
+			}
 		}
 		ra_bigint_free(q_);
 		ra_bigint_free(r_);
@@ -668,7 +658,18 @@ divmod_(struct ra_bigint *a,
 void x(void) {
 	ra_bigint_t a,b,q,r;
 
-	a = ra_bigint_init("123456789123456789123456789123456789123456789123");
+	a = ra_bigint_init("0x1025e6479a732dbc0");
+	b = ra_bigint_init("0xe0910c4178118000");
+
+	r = ra_bigint_sub(a, b);
+
+	print(a, "a");
+	print(b, "b");
+	print(r, "r");
+
+	return;
+
+	a = ra_bigint_init("12345678912345678912345678912345678912");
 	b = ra_bigint_init("987654321987654");
 
 	divmod_(a, b, &q, &r);
