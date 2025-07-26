@@ -240,17 +240,15 @@ usub(const struct ra_bigint *a, const struct ra_bigint *b)
 }
 
 static int
-divmod(struct ra_bigint *a,
-       struct ra_bigint *b,
-       struct ra_bigint **q,
-       struct ra_bigint **r)
+slow_divmod(struct ra_bigint *a,
+	    struct ra_bigint *b,
+	    struct ra_bigint **q,
+	    struct ra_bigint **r)
 {
 	struct ra_bigint *q_, *r_, *b2, *q2;
 
 	if (0 > cmp(a, b)) {
-		(*q) = allocate(0);
-		(*r) = clone(a);
-		if (!(*q) || !(*r)) {
+		if (!((*q) = allocate(0)) || !((*r) = clone(a))) {
 			ra_bigint_free(*q);
 			ra_bigint_free(*r);
 			RA_TRACE(NULL);
@@ -260,7 +258,7 @@ divmod(struct ra_bigint *a,
 	else {
 		q_ = r_ = NULL;
 		if (!(b2 = ra_bigint_mul(b, &C[2])) ||
-		    divmod(a, b2, &q_, &r_) ||
+		    slow_divmod(a, b2, &q_, &r_) ||
 		    !(q2 = ra_bigint_mul(q_, &C[2]))) {
 			ra_bigint_free(q_);
 			ra_bigint_free(r_);
@@ -490,7 +488,7 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 		}
 		return 0;
 	}
-	if (divmod(a, b, q, r)) {
+	if (slow_divmod(a, b, q, r)) {
 		RA_TRACE(NULL);
 		return -1;
 	}
