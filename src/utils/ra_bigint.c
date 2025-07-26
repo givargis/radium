@@ -116,8 +116,6 @@ allocate(int width)
 {
 	struct ra_bigint *z;
 
-	assert( 0 <= width );
-
 	if (MAX_DIGITS < width) {
 		RA_TRACE("integer too large");
 		return NULL;
