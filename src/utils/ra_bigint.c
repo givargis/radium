@@ -291,17 +291,16 @@ ra_bigint_t
 ra_bigint_init(const char *s)
 {
 	struct ra_bigint *a, *b, *z;
-	int (*p2v)(int);
-	int sign, m, v;
+	int v;
 
 	if (!(z = allocate(0))) {
 		RA_TRACE(NULL);
 		return NULL;
 	}
 	if (s) {
-		m = 10;
-		sign = 0;
-		p2v = dec2int;
+		int m = 10;
+		int sign = 0;
+		int (*p2v)(int) = dec2int;
 		if ('-' == (*s)) {
 			sign = 1;
 			++s;
