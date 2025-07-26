@@ -577,8 +577,6 @@ ra_bigint_bist(void)
 {
 	ra_bigint_t a, b, t1, t2, t3, t4;
 
-	// verify Fibonacci numbers
-
 	if (!(a = ra_bigint_init("0")) || !(b = ra_bigint_init("1"))) {
 		RA_TRACE(NULL);
 		return -1;
