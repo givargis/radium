@@ -19,6 +19,10 @@ ra_bigint_t ra_bigint_sub(ra_bigint_t a, ra_bigint_t b);
 
 ra_bigint_t ra_bigint_mul(ra_bigint_t a, ra_bigint_t b);
 
+ra_bigint_t ra_bigint_div(ra_bigint_t a, ra_bigint_t b);
+
+ra_bigint_t ra_bigint_mod(ra_bigint_t a, ra_bigint_t b);
+
 int ra_bigint_divmod(ra_bigint_t a,
 		     ra_bigint_t b,
 		     ra_bigint_t *r,
@@ -27,6 +31,8 @@ int ra_bigint_divmod(ra_bigint_t a,
 void ra_bigint_free(ra_bigint_t a);
 
 int ra_bigint_cmp(ra_bigint_t a, ra_bigint_t b);
+
+int ra_bigint_is_perfect_square(ra_bigint_t a);
 
 int ra_bigint_is_negative(ra_bigint_t a);
 

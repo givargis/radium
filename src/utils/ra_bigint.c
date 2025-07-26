@@ -437,26 +437,51 @@ ra_bigint_mul(ra_bigint_t a, ra_bigint_t b)
 	return z;
 }
 
+ra_bigint_t
+ra_bigint_div(ra_bigint_t a, ra_bigint_t b)
+{
+	struct ra_bigint *q, *r;
+
+	assert( a );
+	assert( b );
+
+	if (ra_bigint_divmod(a, b, &q, &r)) {
+		RA_TRACE(NULL);
+		return NULL;
+	}
+	ra_bigint_free(r);
+	return q;
+}
+
+ra_bigint_t
+ra_bigint_mod(ra_bigint_t a, ra_bigint_t b)
+{
+	struct ra_bigint *q, *r;
+
+	assert( a );
+	assert( b );
+
+	if (ra_bigint_divmod(a, b, &q, &r)) {
+		RA_TRACE(NULL);
+		return NULL;
+	}
+	ra_bigint_free(q);
+	return r;
+}
+
 int
 ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 {
-	int d;
-
 	assert( a );
 	assert( b );
 	assert( q );
 	assert( r );
 
-	// (0 == b) => (q=?, r=?)
-
 	if (!b->width) {
 		(*q) = (*r) = NULL;
-		RA_TRACE("divide by zero");
+		RA_TRACE("arithmetic");
 		return -1;
 	}
-
-	// (1 == b) => (q=a, r=0)
-
 	if (IS_ONE(b)) {
 		if (!((*q) = clone(a)) || !((*r) = allocate(0))) {
 			ra_bigint_free(*q);
@@ -465,29 +490,6 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 		}
 		return 0;
 	}
-
-	// (a == b) => (q=1, r=0)
-	// (a  < b) => (q=0, r=a)
-
-	if (!(d = cmp(a, b))) {
-		if (!((*q) = clone(&C[1])) || !((*r) = allocate(0))) {
-			ra_bigint_free(*q);
-			RA_TRACE(NULL);
-			return -1;
-		}
-		return 0;
-	}
-	if (0 > d) {
-		if (!((*q) = allocate(0)) || !((*r) = clone(a))) {
-			ra_bigint_free(*q);
-			RA_TRACE(NULL);
-			return -1;
-		}
-		return 0;
-	}
-
-	// divide
-
 	if (divmod(a, b, q, r)) {
 		RA_TRACE(NULL);
 		return -1;
@@ -512,6 +514,50 @@ ra_bigint_cmp(ra_bigint_t a, ra_bigint_t b)
 	assert( b );
 
 	return cmp(a, b);
+}
+
+int
+ra_bigint_is_perfect_square(ra_bigint_t a)
+{
+	struct ra_bigint *t, *l, *h, *m;
+	int d;
+
+	assert( a );
+
+	if (a->sign) {
+		return 0;
+	}
+	if (!a->width) {
+		return 1;
+	}
+	l = clone(&C[1]);
+	h = ra_bigint_div(a, &C[2]);
+	while (0 >= ra_bigint_cmp(l, h)) {
+		t = ra_bigint_add(l, h);
+		m = ra_bigint_div(t, &C[2]);
+		ra_bigint_free(t);
+		t = ra_bigint_mul(m, m);
+		d = ra_bigint_cmp(t, a);
+		ra_bigint_free(t);
+		if (!d) {
+			ra_bigint_free(l);
+			ra_bigint_free(h);
+			ra_bigint_free(m);
+			return 1;
+		}
+		else if (0 > d) {
+			ra_bigint_free(l);
+			l = ra_bigint_add(m, &C[1]);
+		}
+		else {
+			ra_bigint_free(h);
+			h = ra_bigint_sub(m, &C[1]);
+		}
+		ra_bigint_free(m);
+	}
+	ra_bigint_free(h);
+	ra_bigint_free(l);
+	return 0;
 }
 
 int
@@ -563,7 +609,7 @@ ra_bigint_bist(void)
 		if (!(t1 = ra_bigint_mul(b, b)) ||
 		    !(t2 = ra_bigint_mul(t1, &C[5])) ||
 		    !(t3 = ra_bigint_add(t2, &C[4])) ||
-		    !(t4 = ra_bigint_sub(t3, &C[4]))) {
+		    !(t4 = ra_bigint_sub(t2, &C[4]))) {
 			ra_bigint_free(a);
 			ra_bigint_free(b);
 			ra_bigint_free(t1);
@@ -573,9 +619,17 @@ ra_bigint_bist(void)
 			RA_TRACE(NULL);
 			return -1;
 		}
-
-		// FIX : is_perfect_square(t3) || is_perfect_square(t4)
-
+		if (!ra_bigint_is_perfect_square(t3) &&
+		    !ra_bigint_is_perfect_square(t4)) {
+			ra_bigint_free(a);
+			ra_bigint_free(b);
+			ra_bigint_free(t1);
+			ra_bigint_free(t2);
+			ra_bigint_free(t3);
+			ra_bigint_free(t4);
+			RA_TRACE("software");
+			return -1;
+		}
 		ra_bigint_free(t1);
 		ra_bigint_free(t2);
 		ra_bigint_free(t3);
@@ -584,35 +638,4 @@ ra_bigint_bist(void)
 	ra_bigint_free(a);
 	ra_bigint_free(b);
 	return 0;
-}
-
-static void print(struct ra_bigint *bigint, const char *name) {
-	ra_log("%s: (%s)", name, bigint->sign ? "-" : "");
-	for (int i=(bigint->width-1); i>=0; --i) {
-		ra_log("  %016lx", (unsigned long)bigint->digits[i]);
-	}
-}
-
-void x(void) {
-	ra_bigint_t a,b,q,r;
-
-	a = ra_bigint_init("12345678912345678912345678912345678912");
-	b = ra_bigint_init("987654321987654");
-
-	divmod(a, b, &q, &r);
-
-	ra_bigint_t qb = ra_bigint_mul(q, b);
-	ra_bigint_t qbr = ra_bigint_add(qb, r);
-
-	ra_log("cmp: %d", cmp(a, qbr));
-
-	print(a, "a");
-	print(b, "b");
-	print(q, "q");
-	print(r, "r");
-
-	ra_bigint_free(a);
-	ra_bigint_free(b);
-	ra_bigint_free(q);
-	ra_bigint_free(r);
 }

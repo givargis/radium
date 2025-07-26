@@ -7,12 +7,9 @@
 #include "root/ra_root.h"
 #include "utils/ra_utils.h"
 
-void x(void);
-
 static int
 stage(void)
 {
-	x();
 	return 0;
 }
 
