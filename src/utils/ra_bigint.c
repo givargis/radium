@@ -253,6 +253,16 @@ slow_divmod(struct ra_bigint *a,
 	return 0;
 }
 
+void
+ra_bigint_free(ra_bigint_t a)
+{
+	if (a) {
+		free(a->digits);
+		memset(a, 0, sizeof (struct ra_bigint));
+	}
+	free(a);
+}
+
 ra_bigint_t
 ra_bigint_init(const char *s)
 {
@@ -457,42 +467,24 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 	return 0;
 }
 
-void
-ra_bigint_free(ra_bigint_t a)
-{
-	if (a) {
-		free(a->digits);
-		memset(a, 0, sizeof (struct ra_bigint));
-	}
-	free(a);
-}
-
 int
 ra_bigint_cmp(ra_bigint_t a, ra_bigint_t b)
 {
 	assert( a );
 	assert( b );
 
-	// different sign
-
-	if (a->sign > b->sign) { // - ? +
+	if (a->sign > b->sign) {
 		return -1;
 	}
-	if (a->sign < b->sign) { // + ? -
+	if (a->sign < b->sign) {
 		return +1;
 	}
-
-	// different width
-
 	if (a->width > b->width) {
 		return a->sign ? -1 : +1;
 	}
 	if (a->width < b->width) {
 		return a->sign ? +1 : -1;
 	}
-
-	// otherwise
-
 	for (int i=a->width-1; i>=0; --i) {
 		if (a->digits[i] > b->digits[i]) {
 			return a->sign ? -1 : +1;
@@ -601,6 +593,7 @@ int
 ra_bigint_bist(void)
 {
 	ra_bigint_t a, b, t1, t2, t3, t4;
+	int e1, e2;
 
 	if (!(a = ra_bigint_init("0")) || !(b = ra_bigint_init("1"))) {
 		RA_TRACE(NULL);
@@ -630,8 +623,8 @@ ra_bigint_bist(void)
 			RA_TRACE(NULL);
 			return -1;
 		}
-		if (!ra_bigint_is_perfect_square(t3) &&
-		    !ra_bigint_is_perfect_square(t4)) {
+		if (!(e1 = ra_bigint_is_perfect_square(t3)) &&
+		    !(e2 = ra_bigint_is_perfect_square(t4))) {
 			ra_bigint_free(a);
 			ra_bigint_free(b);
 			ra_bigint_free(t1);
@@ -645,6 +638,10 @@ ra_bigint_bist(void)
 		ra_bigint_free(t2);
 		ra_bigint_free(t3);
 		ra_bigint_free(t4);
+		if ((0 > e1) || (0 > e2)) {
+			RA_TRACE(NULL);
+			return -1;
+		}
 	}
 	ra_bigint_free(a);
 	ra_bigint_free(b);
