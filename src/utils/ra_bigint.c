@@ -149,40 +149,6 @@ clone(const struct ra_bigint *a)
 	return z;
 }
 
-static int
-cmp(const struct ra_bigint *a, const struct ra_bigint *b)
-{
-	// different sign
-
-	if (a->sign > b->sign) { // - ? +
-		return -1;
-	}
-	if (a->sign < b->sign) { // + ? -
-		return +1;
-	}
-
-	// different width
-
-	if (a->width > b->width) {
-		return a->sign ? -1 : +1;
-	}
-	if (a->width < b->width) {
-		return a->sign ? +1 : -1;
-	}
-
-	// otherwise
-
-	for (int i=a->width-1; i>=0; --i) {
-		if (a->digits[i] > b->digits[i]) {
-			return a->sign ? -1 : +1;
-		}
-		if (a->digits[i] < b->digits[i]) {
-			return a->sign ? +1 : -1;
-		}
-	}
-	return 0;
-}
-
 static struct ra_bigint *
 uadd(const struct ra_bigint *a, const struct ra_bigint *b)
 {
@@ -245,7 +211,7 @@ slow_divmod(struct ra_bigint *a,
 {
 	struct ra_bigint *q_, *r_, *b2, *q2;
 
-	if (0 > cmp(a, b)) {
+	if (0 > ra_bigint_cmp(a, b)) {
 		if (!((*q) = allocate(0)) || !((*r) = clone(a))) {
 			ra_bigint_free(*q);
 			ra_bigint_free(*r);
@@ -265,7 +231,7 @@ slow_divmod(struct ra_bigint *a,
 			return -1;
 		}
 		ra_bigint_free(b2);
-		if (0 > cmp(r_, b)) {
+		if (0 > ra_bigint_cmp(r_, b)) {
 			(*q) = q2;
 			(*r) = r_;
 			ra_bigint_free(q_);
@@ -356,7 +322,7 @@ ra_bigint_add(ra_bigint_t a, ra_bigint_t b)
 		z->sign = a->sign;
 	}
 	else {
-		if (!(d = cmp(a, b))) {
+		if (!(d = ra_bigint_cmp(a, b))) {
 			if (!(z = allocate(0))) {
 				RA_TRACE(NULL);
 				return NULL;
@@ -507,7 +473,35 @@ ra_bigint_cmp(ra_bigint_t a, ra_bigint_t b)
 	assert( a );
 	assert( b );
 
-	return cmp(a, b);
+	// different sign
+
+	if (a->sign > b->sign) { // - ? +
+		return -1;
+	}
+	if (a->sign < b->sign) { // + ? -
+		return +1;
+	}
+
+	// different width
+
+	if (a->width > b->width) {
+		return a->sign ? -1 : +1;
+	}
+	if (a->width < b->width) {
+		return a->sign ? +1 : -1;
+	}
+
+	// otherwise
+
+	for (int i=a->width-1; i>=0; --i) {
+		if (a->digits[i] > b->digits[i]) {
+			return a->sign ? -1 : +1;
+		}
+		if (a->digits[i] < b->digits[i]) {
+			return a->sign ? +1 : -1;
+		}
+	}
+	return 0;
 }
 
 int
