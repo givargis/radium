@@ -186,123 +186,54 @@ cmp(const struct ra_bigint *a, const struct ra_bigint *b)
 }
 
 static struct ra_bigint *
-add(const struct ra_bigint *a, const struct ra_bigint *b)
+uadd(const struct ra_bigint *a, const struct ra_bigint *b)
 {
 	struct ra_bigint *z;
-	uint64_t a_, b_, z_;
-	int i, c;
+	int c;
 
-	assert( a->width <= b->width );
-
+	c = 0;
 	if (!(z = allocate(RA_MAX(a->width, b->width) + 1))) {
 		RA_TRACE(NULL);
 		return NULL;
 	}
-	for (i=c=0; i<a->width; ++i) {
-		a_ = a->digits[i];
-		b_ = b->digits[i];
-		z_ = a_ + b_ + c;
-		c = (z_ < a_);
+	for (int i=0; i<z->width; ++i) {
+		uint64_t a_ = (i < a->width) ? a->digits[i] : 0;
+		uint64_t b_ = (i < b->width) ? b->digits[i] : 0;
+		uint64_t z_;
+		int c_;
+		z_  = a_ + b_;
+		c_  = (z_ < a_);
+		z_ += c;
+		c_ += (z_ < (uint64_t)c);
 		z->digits[i] = z_;
+		c = c_;
 	}
-	for (; i<b->width; ++i) {
-		b_ = b->digits[i];
-		z_ = b_ + c;
-		c = (!z_ && c);
-		z->digits[i] = z_;
-	}
-	z->digits[i] = c;
-	z->sign = 0;
+	NORMALIZE(z);
 	return z;
 }
 
 static struct ra_bigint *
-sub(const struct ra_bigint *a, const struct ra_bigint *b)
+usub(const struct ra_bigint *a, const struct ra_bigint *b)
 {
 	struct ra_bigint *z;
-	uint64_t a_, b_, z_;
-	int i, c;
+	int c;
 
-	assert( a->width <= b->width );
-	assert( a->sign != b->sign );
-
-	if (!(z = allocate(RA_MAX(a->width, b->width)))) {
+	c = 0;
+	if (!(z = allocate(a->width))) {
 		RA_TRACE(NULL);
 		return NULL;
 	}
-	for (i=c=0; i<a->width; ++i) {
-		a_ = a->digits[i];
-		b_ = b->digits[i];
-		z_ = a_ - b_ - c;
-		c = (a_ < (b_ + c));
+	for (int i=0; i<z->width; ++i) {
+		uint64_t a_ = a->digits[i];
+		uint64_t b_ = (i < b->width) ? b->digits[i] : 0;
+		uint64_t z_;
+		int c_;
+		z_  = a_ - b_;
+		c_  = (a_ < b_);
+		z_ -= c;
+		c_ |= (z_ > a_);
 		z->digits[i] = z_;
-		ra_log("c=%d\n", c);
-	}
-	for (; i<b->width; ++i) {
-		b_ = b->digits[i];
-		z_ = b_ - c;
-		if ((c = (!z_ && c))) {
-			z_ = ~z_ + 1;
-		}
-		z->digits[i] = z_;
-	}
-	if ((z->sign = c)) {
-		--z->digits[i - 1];
-	}
-	return z;
-}
-
-static struct ra_bigint *
-addsub(const struct ra_bigint *a, const struct ra_bigint *b)
-{
-	struct ra_bigint *z;
-
-	/**
-	 * n(a)/n(b) |a||b| operation
-	 * ---------------------------
-	 * +/+       <=      add(a, b)
-	 * -/+       <=     -sub(a, b)
-	 * +/-       <=      sub(a, b)
-	 * -/-       <=     -add(a, b)
-	 * +/+       >       add(b, a)
-	 * -/+       >       sub(b, a)
-	 * +/-       >      -sub(b, a)
-	 * -/-       >      -add(b, a)
-	 */
-
-	if (a->width <= b->width) {
-		if (a->sign ^ b->sign) {
-			if (!(z = sub(a, b))) {
-				RA_TRACE(NULL);
-				return NULL;
-			}
-		}
-		else {
-			if (!(z = add(a, b))) {
-				RA_TRACE(NULL);
-				return NULL;
-			}
-		}
-		if (a->sign) {
-			z->sign = !z->sign;
-		}
-	}
-	else {
-		if (a->sign ^ b->sign) {
-			if (!(z = sub(b, a))) {
-				RA_TRACE(NULL);
-				return NULL;
-			}
-		}
-		else {
-			if (!(z = add(b, a))) {
-				RA_TRACE(NULL);
-				return NULL;
-			}
-		}
-		if (b->sign) {
-			z->sign = !z->sign;
-		}
+		c = c_;
 	}
 	NORMALIZE(z);
 	return z;
@@ -311,18 +242,52 @@ addsub(const struct ra_bigint *a, const struct ra_bigint *b)
 static int
 divmod(struct ra_bigint *a,
        struct ra_bigint *b,
-       struct ra_bigint *q,
-       struct ra_bigint *r)
+       struct ra_bigint **q,
+       struct ra_bigint **r)
 {
-	assert( a->width >= b->width );
+	struct ra_bigint *q_, *r_, *b2, *q2;
 
-	(void)a;
-	(void)b;
-
-	// FIX : not implemented
-
-	NORMALIZE(q);
-	NORMALIZE(r);
+	if (0 > cmp(a, b)) {
+		(*q) = allocate(0);
+		(*r) = clone(a);
+		if (!(*q) || !(*r)) {
+			ra_bigint_free(*q);
+			ra_bigint_free(*r);
+			RA_TRACE(NULL);
+			return -1;
+		}
+	}
+	else {
+		q_ = r_ = NULL;
+		if (!(b2 = ra_bigint_mul(b, &C[2])) ||
+		    divmod(a, b2, &q_, &r_) ||
+		    !(q2 = ra_bigint_mul(q_, &C[2]))) {
+			ra_bigint_free(q_);
+			ra_bigint_free(r_);
+			ra_bigint_free(b2);
+			RA_TRACE(NULL);
+			return -1;
+		}
+		ra_bigint_free(b2);
+		if (0 > cmp(r_, b)) {
+			(*q) = q2;
+			(*r) = r_;
+			ra_bigint_free(q_);
+		}
+		else {
+			(*q) = ra_bigint_add(q2, &C[1]);
+			(*r) = ra_bigint_sub(r_, b);
+			ra_bigint_free(q_);
+			ra_bigint_free(r_);
+			ra_bigint_free(q2);
+			if (!(*q) || !(*r)) {
+				RA_TRACE(NULL);
+				return -1;
+			}
+		}
+	}
+	NORMALIZE((*q));
+	NORMALIZE((*r));
 	return 0;
 }
 
@@ -383,13 +348,39 @@ ra_bigint_t
 ra_bigint_add(ra_bigint_t a, ra_bigint_t b)
 {
 	struct ra_bigint *z;
+	int d;
 
 	assert( a );
 	assert( b );
 
-	if (!(z = addsub(a, b))) {
-		RA_TRACE(NULL);
-		return NULL;
+	if (a->sign == b->sign) {
+		if (!(z = uadd(a, b))) {
+			RA_TRACE(NULL);
+			return NULL;
+		}
+		z->sign = a->sign;
+	}
+	else {
+		if (!(d = cmp(a, b))) {
+			if (!(z = allocate(0))) {
+				RA_TRACE(NULL);
+				return NULL;
+			}
+		}
+		else if (0 < d) {
+			if (!(z = usub(a, b))) {
+				RA_TRACE(NULL);
+				return NULL;
+			}
+			z->sign = a->sign;
+		}
+		else {
+			if (!(z = usub(b, a))) {
+				RA_TRACE(NULL);
+				return NULL;
+			}
+			z->sign = b->sign;
+		}
 	}
 	return z;
 }
@@ -402,13 +393,13 @@ ra_bigint_sub(ra_bigint_t a, ra_bigint_t b)
 	assert( a );
 	assert( b );
 
-	b->sign = !b->sign;
-	if (!(z = addsub(a, b))) {
-		b->sign = !b->sign;
+	((struct ra_bigint *)b)->sign = !b->sign;
+	z = ra_bigint_add(a, b);
+	((struct ra_bigint *)b)->sign = !b->sign;
+	if (!z) {
 		RA_TRACE(NULL);
 		return NULL;
 	}
-	b->sign = !b->sign;
 	return z;
 }
 
@@ -497,15 +488,7 @@ ra_bigint_divmod(ra_bigint_t a, ra_bigint_t b, ra_bigint_t *q, ra_bigint_t *r)
 
 	// divide
 
-	if (!((*q) = allocate(a->width - b->width + 1)) ||
-	    !((*r) = allocate(b->width))) {
-		ra_bigint_free(*q);
-		RA_TRACE(NULL);
-		return -1;
-	}
-	if (divmod(a, b, (*q), (*r))) {
-		ra_bigint_free(*q);
-		ra_bigint_free(*r);
+	if (divmod(a, b, q, r)) {
 		RA_TRACE(NULL);
 		return -1;
 	}
@@ -610,69 +593,13 @@ static void print(struct ra_bigint *bigint, const char *name) {
 	}
 }
 
-void
-divmod_(struct ra_bigint *a,
-	struct ra_bigint *b,
-	struct ra_bigint **q,
-	struct ra_bigint **r)
-{
-	struct ra_bigint *q_, *r_, *b2, *q2;
-
-	if (0 > cmp(a, b)) {
-		(*q) = allocate(0);
-		(*r) = clone(a);
-	}
-	else {
-		b2 = ra_bigint_mul(b, &C[2]);
-		divmod_(a, b2, &q_, &r_);
-		q2 = ra_bigint_mul(q_, &C[2]);
-		if (0 > cmp(r_, b)) {
-			(*q) = q2;
-			(*r) = r_;
-			r_ = NULL;
-			q2 = NULL;
-		}
-		else {
-			(*q) = ra_bigint_add(q2, &C[1]);
-
-			assert( !r_->sign );
-			assert( !b->sign );
-
-			(*r) = ra_bigint_sub(r_, b);
-
-			if ( (*r)->sign ) {
-				print(r_, "r_");
-				print(b, "b");
-				exit(-1);
-			}
-		}
-		ra_bigint_free(q_);
-		ra_bigint_free(r_);
-		ra_bigint_free(b2);
-		ra_bigint_free(q2);
-	}
-	NORMALIZE((*q));
-	NORMALIZE((*r));
-}
-
 void x(void) {
 	ra_bigint_t a,b,q,r;
-
-	a = ra_bigint_init("0x1025e6479a732dbc0");
-	b = ra_bigint_init("0xe0910c4178118000");
-
-	r = ra_bigint_sub(a, b);
-
-	print(a, "a");
-	print(b, "b");
-	print(r, "r");
-
-	return;
 
 	a = ra_bigint_init("12345678912345678912345678912345678912");
 	b = ra_bigint_init("987654321987654");
 
-	divmod_(a, b, &q, &r);
+	divmod(a, b, &q, &r);
 
 	ra_bigint_t qb = ra_bigint_mul(q, b);
 	ra_bigint_t qbr = ra_bigint_add(qb, r);
