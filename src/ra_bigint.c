@@ -498,7 +498,7 @@ convert_real(double r)
 	exp -= 53; // this many significant bits
 	while (64 <= exp) {
 		exp -= 64;
-		z->parts[i++] = 0; // the rest of 0s
+		z->parts[i++] = 0;
 	}
 	exp += 53;
 
