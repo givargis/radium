@@ -24,7 +24,7 @@ set(struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	bitset->parts[s][Q] |= (1LU << R);
+	bitset->parts[s][Q] |= (1LLU << R);
 }
 
 static void
@@ -33,7 +33,7 @@ clr(struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	bitset->parts[s][Q] &= ~(1LU << R);
+	bitset->parts[s][Q] &= ~(1LLU << R);
 }
 
 static int
@@ -43,7 +43,7 @@ get(const struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t R = i % 64;
 
 	if (i < bitset->size) {
-		if ( (bitset->parts[s][Q] & (1LU << R)) ) {
+		if ( (bitset->parts[s][Q] & (1LLU << R)) ) {
 			return 1;
 		}
 	}

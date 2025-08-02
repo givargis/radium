@@ -136,7 +136,7 @@ ra_hash_test(void)
 		size_t len = rand() % (sizeof (buf));
 		uint64_t hash = ra_hash(buf, len);
 		for (int j=0; j<64; ++j) {
-			if (hash & (1LU << j)) {
+			if (hash & (1LLU << j)) {
 				stats[j] += 1.0;
 			}
 		}

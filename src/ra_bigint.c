@@ -23,8 +23,8 @@
 #define IS_NEGATIVE(a) ( (a)->sign )
 
 struct ra_bigint {
-	uint8_t sign;
-	uint16_t width;
+	int sign;
+	int width;
 	uint64_t *parts;
 };
 
@@ -52,7 +52,9 @@ destroy(struct ra_bigint *z)
 {
 	if (z) {
 		free(z->parts);
-		memset(z, 0, sizeof (struct ra_bigint));
+		z->parts = NULL;
+		z->width = 0;
+		z->sign = 0;
 	}
 	free(z);
 }
@@ -70,7 +72,8 @@ create(int width)
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	memset(z, 0, sizeof (struct ra_bigint));
+	z->parts = NULL;
+	z->sign = 0;
 	if ((z->width = width)) {
 		if (!(z->parts = malloc(z->width * sizeof (z->parts[0])))) {
 			destroy(z);
@@ -103,7 +106,8 @@ normalize(struct ra_bigint *z)
 	}
 	if (!z->width) {
 		free(z->parts);
-		memset(z, 0, sizeof (struct ra_bigint));
+		z->parts = NULL;
+		z->sign = 0;
 	}
 }
 
@@ -258,7 +262,7 @@ mul128(uint64_t *h, uint64_t *l, uint64_t a, uint64_t b)
 	t2 += t1 >> 32;
 	t3 += t2;
 	if (t3 < t2) {
-		t4 += 1LU << 32;
+		t4 += 1LLU << 32;
 	}
 	t4 += t3 >> 32;
 	(*h) = t4;
@@ -433,8 +437,13 @@ convert_int(int64_t v)
 		RA_TRACE("^");
 		return NULL;
 	}
-	z->parts[0] = (uint64_t)((0 > v) ? -v : v);
-	z->sign = (0 > v);
+	if (LLONG_MIN == v) {
+		z->parts[0] = 0x8000000000000000;
+	}
+	else {
+		z->parts[0] = (uint64_t)((0 > v) ? -v : v);
+	}
+	z->sign = (0 > v) ? 1 : 0;
 	normalize(z);
 	return z;
 }
@@ -580,7 +589,7 @@ convert_string(const char *s)
 static const char *
 print(const struct ra_bigint *a)
 {
-	const uint64_t M_[] = { 1000000000000000000LU };
+	const uint64_t M_[] = { 1000000000000000000LLU };
 	const struct ra_bigint M = { 0, 1, (uint64_t *)M_ };
 	struct ra_bigint *q, *r, *q_;
 	uint64_t *stack;
@@ -603,10 +612,11 @@ print(const struct ra_bigint *a)
 	i = 0;
 	while (!IS_ZERO(q)) {
 		if (divmod(q, &M, &q_, &r)) {
+			destroy(q);
 			free(buf);
 			free(stack);
-			RA_TRACE("^ (halting)");
-			exit(-1);
+			RA_TRACE("^");
+			return NULL;
 		}
 		stack[i++] = r->width ? r->parts[0] : 0;
 		destroy(r);
@@ -830,9 +840,47 @@ int
 ra_bigint_test(void)
 {
 	struct ra_bigint *a, *b, *t1, *t2, *t3, *t4;
+	const char *s;
 	int e1, e2;
 
+	// convert smallest int
+
+	if (!(a = ra_bigint_int(-9223372036854775807LL - 1)) ||
+	    !(s = ra_bigint_print(a))) {
+		ra_bigint_free(a);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (strcmp("-9223372036854775808", s)) {
+		free((void *)s);
+		ra_bigint_free(a);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	free((void *)s);
+	ra_bigint_free(a);
+
+	// convert largest int
+
+	if (!(a = ra_bigint_int(9223372036854775807LL)) ||
+	    !(s = ra_bigint_print(a))) {
+		ra_bigint_free(a);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (strcmp("9223372036854775807", s)) {
+		free((void *)s);
+		ra_bigint_free(a);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	free((void *)s);
+	ra_bigint_free(a);
+
+	// fibonacci sequence
+
 	if (!(a = ra_bigint_int(0)) || !(b = ra_bigint_int(1))) {
+		ra_bigint_free(a);
 		RA_TRACE("^");
 		return -1;
 	}
