@@ -437,12 +437,7 @@ convert_int(int64_t v)
 		RA_TRACE("^");
 		return NULL;
 	}
-	if (LLONG_MIN == v) {
-		z->parts[0] = 0x8000000000000000;
-	}
-	else {
-		z->parts[0] = (uint64_t)((0 > v) ? -v : v);
-	}
+	z->parts[0] = (0 > v) ? ~(uint64_t)v + 1 : v;
 	z->sign = (0 > v) ? 1 : 0;
 	normalize(z);
 	return z;
