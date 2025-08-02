@@ -5,7 +5,7 @@
 //
 
 #include "ra_kernel.h"
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_ann.h"
 #include "ra_avl.h"
 #include "ra_base64.h"
@@ -21,13 +21,13 @@
 	do {							\
 		uint64_t t = ra_time();				\
 		if (f()) {					\
-			ra_printf(RA_COLOR_RED_BOLD,		\
+			ra_logger(RA_COLOR_RED_BOLD,		\
 				  "%8s %6.1fs ERROR\n",		\
 				  (m),				\
 				  1e-6 * (ra_time() - t));	\
 		}						\
 		else {						\
-			ra_printf(RA_COLOR_GREEN_BOLD,		\
+			ra_logger(RA_COLOR_GREEN_BOLD,		\
 				  "%8s %6.1fs OK\n",		\
 				  (m),				\
 				  1e-6 * (ra_time() - t));	\

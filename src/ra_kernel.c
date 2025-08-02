@@ -12,7 +12,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_kernel.h"
 
 ra_endian_t

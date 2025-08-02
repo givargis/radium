@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_eigen.h"
 
 #define E RA_EIGEN_E

@@ -1,7 +1,7 @@
 //
 // Copyright (c) Tony Givargis, 2024-2025
 // givargis@uci.edu
-// ra_printf.c
+// ra_logger.c
 //
 
 #include <unistd.h>
@@ -10,10 +10,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "ra_printf.h"
+#include "ra_logger.h"
 
 void
-ra_printf(ra_color_t color, const char *format, ...)
+ra_logger(ra_color_t color, const char *format, ...)
 {
 	int is_term;
 	va_list ap;

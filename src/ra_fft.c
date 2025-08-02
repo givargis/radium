@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include "ra_kernel.h"
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_fft.h"
 
 #define PI 3.14159265358979323846264338327950288

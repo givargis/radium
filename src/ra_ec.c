@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_ec.h"
 
 static uint8_t G_H[256][16];

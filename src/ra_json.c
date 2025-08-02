@@ -11,7 +11,7 @@
 #include <ctype.h>
 
 #include "ra_kernel.h"
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_json.h"
 
 #define ERROR(j, m)					\
@@ -19,7 +19,7 @@
 		(j)->curr = "";				\
 		(j)->token.op = OP_EOF;			\
 		if (!(j)->stop) {			\
-			ra_printf(RA_COLOR_RED_BOLD,	\
+			ra_logger(RA_COLOR_RED_BOLD,	\
 				  "error: "		\
 				  "json: "		\
 				  "%u:%u: %s\n",	\

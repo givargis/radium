@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 #include "ra_kernel.h"
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_sha3.h"
 
 #define RL64(x, y) ( ((x) << (y)) | ((x) >> (64 - (y))) )

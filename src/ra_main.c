@@ -4,15 +4,22 @@
 // ra_main.c
 //
 
+#include <string.h>
+
 #include "ra_ec.h"
 #include "ra_test.h"
+#include "ra_logo.h"
 
 int
 main(int argc, char *argv[])
 {
-	(void)argc;
-	(void)argv;
 	ra_ec_init();
-	ra_test();
+	for (int i=1; i<argc; ++i) {
+		if (!strcmp("--test", argv[i])) {
+			ra_test();
+			return 0;
+		}
+	}
+	ra_logo();
 	return 0;
 }

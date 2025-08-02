@@ -13,7 +13,7 @@
 #include <math.h>
 
 #include "ra_kernel.h"
-#include "ra_printf.h"
+#include "ra_logger.h"
 #include "ra_bigint.h"
 
 #define MAX_PARTS 16384

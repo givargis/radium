@@ -1,7 +1,7 @@
 //
 // Copyright (c) Tony Givargis, 2024-2025
 // givargis@uci.edu
-// ra_printf.h
+// ra_logger.h
 //
 
 #ifndef __RA_PRINTF_H__
@@ -9,7 +9,7 @@
 
 #define RA_TRACE(s)				\
 	do {					\
-		ra_printf(RA_COLOR_YELLOW,	\
+		ra_logger(RA_COLOR_YELLOW,	\
 			  "trace: %s:%d: %s\n",	\
 			  __FILE__,		\
 			  __LINE__,		\
@@ -35,6 +35,6 @@ typedef enum {
 	RA_COLOR_GRAY_BOLD
 } ra_color_t;
 
-void ra_printf(ra_color_t color, const char *format, ...);
+void ra_logger(ra_color_t color, const char *format, ...);
 
 #endif // __RA_PRINTF_H__
