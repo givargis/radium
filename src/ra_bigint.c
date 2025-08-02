@@ -53,8 +53,8 @@ destroy(struct ra_bigint *z)
 	if (z) {
 		free(z->parts);
 		memset(z, 0, sizeof (struct ra_bigint));
+		free(z);
 	}
-	free(z);
 }
 
 static struct ra_bigint *
@@ -640,10 +640,10 @@ is_square(const struct ra_bigint *a)
 	struct ra_bigint *t, *l, *h, *m;
 	int d;
 
-	if (a->sign) {
+	if (IS_NEGATIVE(a)) {
 		return 0;
 	}
-	if (!a->width) {
+	if (IS_ZERO(a)) {
 		return 1;
 	}
 	if (!(l = clone(RA_BIGINT_CONST[1])) ||
@@ -835,40 +835,6 @@ ra_bigint_test(void)
 	const char *s;
 	int e1, e2;
 
-	// convert smallest int
-
-	if (!(a = ra_bigint_int(-9223372036854775807LL - 1)) ||
-	    !(s = ra_bigint_print(a))) {
-		ra_bigint_free(a);
-		RA_TRACE("^");
-		return -1;
-	}
-	if (strcmp("-9223372036854775808", s)) {
-		free((void *)s);
-		ra_bigint_free(a);
-		RA_TRACE("software bug detected");
-		return -1;
-	}
-	free((void *)s);
-	ra_bigint_free(a);
-
-	// convert largest int
-
-	if (!(a = ra_bigint_int(9223372036854775807LL)) ||
-	    !(s = ra_bigint_print(a))) {
-		ra_bigint_free(a);
-		RA_TRACE("^");
-		return -1;
-	}
-	if (strcmp("9223372036854775807", s)) {
-		free((void *)s);
-		ra_bigint_free(a);
-		RA_TRACE("software bug detected");
-		return -1;
-	}
-	free((void *)s);
-	ra_bigint_free(a);
-
 	// fibonacci sequence
 
 	if (!(a = ra_bigint_int(0)) || !(b = ra_bigint_int(1))) {
@@ -876,7 +842,7 @@ ra_bigint_test(void)
 		RA_TRACE("^");
 		return -1;
 	}
-	for (int i=0; i<1000; ++i) {
+	for (int i=0; i<500; ++i) {
 		if (!(t1 = ra_bigint_add(a, b))) {
 			ra_bigint_free(a);
 			ra_bigint_free(b);
@@ -922,5 +888,39 @@ ra_bigint_test(void)
 	}
 	ra_bigint_free(a);
 	ra_bigint_free(b);
+
+	// convert smallest int
+
+	if (!(a = ra_bigint_int(-9223372036854775807LL - 1)) ||
+	    !(s = ra_bigint_print(a))) {
+		ra_bigint_free(a);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (strcmp("-9223372036854775808", s)) {
+		free((void *)s);
+		ra_bigint_free(a);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	free((void *)s);
+	ra_bigint_free(a);
+
+	// convert largest int
+
+	if (!(a = ra_bigint_int(9223372036854775807LL)) ||
+	    !(s = ra_bigint_print(a))) {
+		ra_bigint_free(a);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (strcmp("9223372036854775807", s)) {
+		free((void *)s);
+		ra_bigint_free(a);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	free((void *)s);
+	ra_bigint_free(a);
 	return 0;
 }

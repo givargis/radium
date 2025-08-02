@@ -1,7 +1,7 @@
 //
 // Copyright (c) Tony Givargis, 2024-2025
 // givargis@uci.edu
-// ra_test.h
+// ra_test.c
 //
 
 #include "ra_kernel.h"
