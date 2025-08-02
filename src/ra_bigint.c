@@ -52,8 +52,9 @@ destroy(struct ra_bigint *z)
 {
 	if (z) {
 		free(z->parts);
-		free(z);
+		memset(z, 0, sizeof (struct ra_bigint));
 	}
+	free(z);
 }
 
 static struct ra_bigint *
