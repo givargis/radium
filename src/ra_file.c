@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "ra_kernel.h"
 #include "ra_logger.h"
 #include "ra_file.h"
 
@@ -76,4 +77,66 @@ ra_file_unlink(const char *pathname)
 	if (pathname) {
 		(void)remove(pathname);
 	}
+}
+
+int
+ra_file_test(void)
+{
+	const char *pathname, *s;
+
+	// zero-byte write/read
+
+	if (!(pathname = ra_temp_pathname(NULL)) ||
+	    ra_file_write(pathname, "")) {
+		free((void *)pathname);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_file_read(pathname)) || strlen(s)) {
+		ra_file_unlink(pathname);
+		free((void *)pathname);
+		free((void *)s);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	free((void *)s);
+
+	// single-byte write/read
+
+	if (ra_file_write(pathname, "x")) {
+		free((void *)pathname);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_file_read(pathname)) ||
+	    (1 != strlen(s)) ||
+	    ('x' != (*s))) {
+		ra_file_unlink(pathname);
+		free((void *)pathname);
+		free((void *)s);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	free((void *)s);
+
+	// multi-byte write
+
+	if (ra_file_write(pathname, pathname)) {
+		free((void *)pathname);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_file_read(pathname)) ||
+	    (strlen(pathname) != strlen(s)) ||
+	    strcmp(pathname, s)) {
+		ra_file_unlink(pathname);
+		free((void *)pathname);
+		free((void *)s);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	ra_file_unlink(pathname);
+	free((void *)pathname);
+	free((void *)s);
+	return 0;
 }

@@ -29,6 +29,8 @@ char *ra_strdup(const char *s);
 
 void ra_sprintf(char *buf, size_t len, const char *format, ...);
 
+const char *ra_temp_pathname(const char *name);
+
 static inline int
 ra_clz(uint64_t x)
 {

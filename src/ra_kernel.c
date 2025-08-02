@@ -78,3 +78,40 @@ ra_sprintf(char *buf, size_t len, const char *format, ...)
 	}
 	va_end(ap);
 }
+
+const char *
+ra_temp_pathname(const char *name)
+{
+	const char *path;
+	char *pathname;
+	size_t n;
+
+	if (!(path = getenv("TMPDIR")) &&
+	    !(path = getenv("TEMP")) &&
+	    !(path = getenv("TMP"))) {
+		path = "";
+	}
+	n = strlen(path) + ((name && strlen(name)) ? strlen(name) : 32) + 2;
+	if (!(pathname = malloc(n))) {
+		RA_TRACE("out of memory");
+		return NULL;
+	}
+	if (name && strlen(name)) {
+		ra_sprintf(pathname,
+			   n,
+			   "%s%s%s",
+			   path,
+			   strlen(path) ? "/" : "",
+			   name);
+	}
+	else {
+		ra_sprintf(pathname,
+			   n,
+			   "%s%s%d.%d",
+			   path,
+			   strlen(path) ? "/" : "",
+			   (int)rand(),
+			   (int)ra_time());
+	}
+	return pathname;
+}

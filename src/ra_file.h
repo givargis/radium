@@ -13,4 +13,6 @@ int ra_file_write(const char *pathname, const char *s);
 
 void ra_file_unlink(const char *pathname);
 
+int ra_file_test(void);
+
 #endif // __RA_FILE_H__

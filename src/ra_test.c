@@ -14,6 +14,7 @@
 #include "ra_ec.h"
 #include "ra_eigen.h"
 #include "ra_fft.h"
+#include "ra_file.h"
 #include "ra_hash.h"
 #include "ra_json.h"
 #include "ra_sha3.h"
@@ -46,6 +47,7 @@ ra_test(void)
 	TEST(ra_ec_test, "ec");
 	TEST(ra_eigen_test, "eigen");
 	TEST(ra_fft_test, "fft");
+	TEST(ra_file_test, "file");
 	TEST(ra_hash_test, "hash");
 	TEST(ra_json_test, "test");
 	TEST(ra_sha3_test, "sha3");
