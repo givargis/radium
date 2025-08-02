@@ -52,9 +52,7 @@ destroy(struct ra_bigint *z)
 {
 	if (z) {
 		free(z->parts);
-		z->parts = NULL;
-		z->width = 0;
-		z->sign = 0;
+		memset(z, 0, sizeof (struct ra_bigint));
 	}
 	free(z);
 }
@@ -72,8 +70,7 @@ create(int width)
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	z->parts = NULL;
-	z->sign = 0;
+	memset(z, 0, sizeof (struct ra_bigint));
 	if ((z->width = width)) {
 		if (!(z->parts = malloc(z->width * sizeof (z->parts[0])))) {
 			destroy(z);
@@ -437,7 +434,7 @@ convert_int(int64_t v)
 		RA_TRACE("^");
 		return NULL;
 	}
-	z->parts[0] = (0 > v) ? ~(uint64_t)v + 1 : v;
+	z->parts[0] = (0 > v) ? ~(uint64_t)v + 1 : (uint64_t)v;
 	z->sign = (0 > v) ? 1 : 0;
 	normalize(z);
 	return z;
