@@ -10,6 +10,7 @@
 #include "ra_avl.h"
 #include "ra_base64.h"
 #include "ra_bigint.h"
+#include "ra_bitset.h"
 #include "ra_ec.h"
 #include "ra_eigen.h"
 #include "ra_fft.h"
@@ -21,13 +22,13 @@
 	do {							\
 		uint64_t t = ra_time();				\
 		if (f()) {					\
-			ra_logger(RA_COLOR_RED_BOLD,		\
+			ra_logger(RA_COLOR_RED,			\
 				  "%8s %6.1fs ERROR\n",		\
 				  (m),				\
 				  1e-6 * (ra_time() - t));	\
 		}						\
 		else {						\
-			ra_logger(RA_COLOR_GREEN_BOLD,		\
+			ra_logger(RA_COLOR_GREEN,		\
 				  "%8s %6.1fs OK\n",		\
 				  (m),				\
 				  1e-6 * (ra_time() - t));	\
@@ -41,6 +42,7 @@ ra_test(void)
 	TEST(ra_avl_test, "avl");
 	TEST(ra_base64_test, "base64");
 	TEST(ra_bigint_test, "bigint");
+	TEST(ra_bitset_test, "bitset");
 	TEST(ra_ec_test, "ec");
 	TEST(ra_eigen_test, "eigen");
 	TEST(ra_fft_test, "fft");

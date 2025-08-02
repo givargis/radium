@@ -14,8 +14,8 @@
 
 struct ra_bitset {
 	uint64_t ii;
-	uint64_t capacity;
-	uint64_t *memory[2];
+	uint64_t size;
+	uint64_t *parts[2];
 };
 
 static void
@@ -24,7 +24,7 @@ set(struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	bitset->memory[s][Q] |= (1LU << R);
+	bitset->parts[s][Q] |= (1LU << R);
 }
 
 static void
@@ -33,7 +33,7 @@ clr(struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	bitset->memory[s][Q] &= ~(1LU << R);
+	bitset->parts[s][Q] &= ~(1LU << R);
 }
 
 static int
@@ -42,8 +42,8 @@ get(const struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	if (i < bitset->capacity) {
-		if ( (bitset->memory[s][Q] & (1LU << R)) ) {
+	if (i < bitset->size) {
+		if ( (bitset->parts[s][Q] & (1LU << R)) ) {
 			return 1;
 		}
 	}
@@ -51,26 +51,26 @@ get(const struct ra_bitset *bitset, uint64_t s, uint64_t i)
 }
 
 ra_bitset_t
-ra_bitset_open(uint64_t capacity)
+ra_bitset_open(uint64_t size)
 {
 	struct ra_bitset *bitset;
 
-	assert( capacity );
+	assert( size );
 
 	if (!(bitset = malloc(sizeof (struct ra_bitset)))) {
-		RA_TRACE("out of memory");
+		RA_TRACE("out of parts");
 		return NULL;
 	}
 	memset(bitset, 0, sizeof (struct ra_bitset));
-	bitset->capacity = capacity;
-	if (!(bitset->memory[0] = malloc(RA_DUP(capacity, 64) * 8)) ||
-	    !(bitset->memory[1] = malloc(RA_DUP(capacity, 64) * 8))) {
+	bitset->size = size;
+	if (!(bitset->parts[0] = malloc(RA_DUP(bitset->size, 64) * 8)) ||
+	    !(bitset->parts[1] = malloc(RA_DUP(bitset->size, 64) * 8))) {
 		ra_bitset_close(bitset);
-		RA_TRACE("out of memory");
+		RA_TRACE("out of parts");
 		return NULL;
 	}
-	memset(bitset->memory[0], 0, RA_DUP(capacity, 64) * 8);
-	memset(bitset->memory[1], 0, RA_DUP(capacity, 64) * 8);
+	memset(bitset->parts[0], 0, RA_DUP(bitset->size, 64) * 8);
+	memset(bitset->parts[1], 0, RA_DUP(bitset->size, 64) * 8);
 	set(bitset, 0, 0);
 	return bitset;
 }
@@ -79,8 +79,8 @@ void
 ra_bitset_close(ra_bitset_t bitset)
 {
 	if (bitset) {
-		free(bitset->memory[0]);
-		free(bitset->memory[1]);
+		free(bitset->parts[0]);
+		free(bitset->parts[1]);
 		memset(bitset, 0, sizeof (struct ra_bitset));
 	}
 	free(bitset);
@@ -95,8 +95,8 @@ ra_bitset_reserve(ra_bitset_t bitset, uint64_t n)
 
 	k = n;
 	i = bitset->ii;
-	for (uint64_t j=0; j<bitset->capacity; ++j) {
-		j_ = (bitset->ii + j) % bitset->capacity;
+	for (uint64_t j=0; j<bitset->size; ++j) {
+		j_ = (bitset->ii + j) % bitset->size;
 		if (get(bitset, 0, j_)) {
 			i = j_ + 1;
 			k = n;
@@ -119,6 +119,8 @@ uint64_t
 ra_bitset_release(ra_bitset_t bitset, uint64_t i)
 {
 	uint64_t n;
+
+	assert( i );
 
 	n = 0;
 	if (get(bitset, 0, i) && !get(bitset, 1, i)) {
@@ -155,14 +157,128 @@ ra_bitset_utilized(ra_bitset_t bitset)
 	uint64_t n;
 
 	n = 0;
-	for (uint64_t i=0; i<RA_DUP(bitset->capacity, 64); ++i) {
-		n += ra_popcount(bitset->memory[0][i]);
+	for (uint64_t i=0; i<RA_DUP(bitset->size, 64); ++i) {
+		n += ra_popcount(bitset->parts[0][i]);
 	}
 	return n;
 }
 
 uint64_t
-ra_bitset_capacity(ra_bitset_t bitset)
+ra_bitset_size(ra_bitset_t bitset)
 {
-	return bitset->capacity;
+	return bitset->size;
+}
+
+int
+ra_bitset_test(void)
+{
+	const int N = 2000000000;
+	const int M = 10000;
+	const int K = 10000000;
+	ra_bitset_t bitset;
+	uint64_t n;
+	struct {
+		uint64_t i;
+		uint64_t n;
+	} *table;
+
+	// single bit
+
+	if (!(bitset = ra_bitset_open(1))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	if ((1 != ra_bitset_size(bitset)) ||
+	    (1 != ra_bitset_utilized(bitset)) ||
+	    (0 != ra_bitset_reserve(bitset, 1))) {
+		ra_bitset_close(bitset);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	ra_bitset_close(bitset);
+
+	// 64 bits
+
+	if (!(bitset = ra_bitset_open(64))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	for (uint64_t i=0; i<63; ++i) {
+		if ((64 != ra_bitset_size(bitset)) ||
+		    ((i+1) != ra_bitset_reserve(bitset, 1)) ||
+		    ((i+2) != ra_bitset_utilized(bitset))) {
+			ra_bitset_close(bitset);
+			RA_TRACE("software bug detected");
+			return -1;
+		}
+	}
+	if (ra_bitset_reserve(bitset, 1)) {
+		ra_bitset_close(bitset);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	ra_bitset_close(bitset);
+
+	// random operations
+
+	if (!(table = malloc(M * sizeof (table[0])))) {
+		RA_TRACE("out of memory");
+		return -1;
+	}
+	memset(table, 0, M * sizeof (table[0]));
+	if (!(bitset = ra_bitset_open(N))) {
+		free(table);
+		RA_TRACE("^");
+		return -1;
+	}
+	for (int i=0; i<K; ++i) {
+		int j = i % M;
+		if (table[j].i) {
+			if ((table[j].n != ra_bitset_validate(bitset,
+							      table[j].i)) ||
+			    (table[j].n != ra_bitset_release(bitset,
+							     table[j].i))) {
+				ra_bitset_close(bitset);
+				free(table);
+				RA_TRACE("software bug detected");
+				return -1;
+			}
+			table[j].i = 0;
+			table[j].n = 0;
+		}
+		else {
+			table[j].n = 1 + (rand() % 99);
+			table[j].i = ra_bitset_reserve(bitset, table[j].n);
+			if (!table[j].i) {
+				ra_bitset_close(bitset);
+				free(table);
+				RA_TRACE("^");
+				return -1;
+			}
+		}
+	}
+	n = ra_bitset_utilized(bitset);
+	for (int i=0; i<M; ++i) {
+		if (table[i].n) {
+			if (table[i].n != ra_bitset_release(bitset,
+							    table[i].i)) {
+				ra_bitset_close(bitset);
+				free(table);
+				RA_TRACE("software bug detected");
+				return -1;
+			}
+			n -= table[i].n;
+		}
+		table[i].i = 0;
+		table[i].n = 0;
+	}
+	if ((1 != n) || (1 != ra_bitset_utilized(bitset))) {
+		ra_bitset_close(bitset);
+		free(table);
+		RA_TRACE("software bug detected");
+		return -1;
+	}
+	ra_bitset_close(bitset);
+	free(table);
+	return 0;
 }

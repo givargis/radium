@@ -11,7 +11,7 @@
 
 typedef struct ra_bitset *ra_bitset_t;
 
-ra_bitset_t ra_bitset_open(uint64_t capacity);
+ra_bitset_t ra_bitset_open(uint64_t size);
 
 void ra_bitset_close(ra_bitset_t bitset);
 
@@ -23,6 +23,8 @@ uint64_t ra_bitset_validate(ra_bitset_t bitset, uint64_t i);
 
 uint64_t ra_bitset_utilized(ra_bitset_t bitset);
 
-uint64_t ra_bitset_capacity(ra_bitset_t bitset);
+uint64_t ra_bitset_size(ra_bitset_t bitset);
+
+int ra_bitset_test(void);
 
 #endif // __RA_BITSET_H__

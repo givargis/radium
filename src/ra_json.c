@@ -19,7 +19,7 @@
 		(j)->curr = "";				\
 		(j)->token.op = OP_EOF;			\
 		if (!(j)->stop) {			\
-			ra_logger(RA_COLOR_RED_BOLD,	\
+			ra_logger(RA_COLOR_RED,		\
 				  "error: "		\
 				  "json: "		\
 				  "%u:%u: %s\n",	\
