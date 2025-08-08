@@ -6,7 +6,7 @@
 
 AR     = ar
 CC     = gcc
-CFLAGS = -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -g
+CFLAGS = -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -O3
 DEST   = libra.a
 
 SRCS = $(wildcard *.c)

@@ -61,7 +61,6 @@ ra_test(void)
         TEST(ra_hash_test, "hash");
         TEST(ra_json_test, "json");
         TEST(ra_mlp_test, "mlp");
-        TEST(ra_json_test, "json");
         TEST(ra_sha3_test, "sha3");
         return e;
 }
