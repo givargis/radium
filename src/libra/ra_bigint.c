@@ -826,60 +826,6 @@ ra_bigint_test(void)
         const char *s;
         int e1, e2;
 
-        // fibonacci sequence
-
-        if (!(a = ra_bigint_int(0)) || !(b = ra_bigint_int(1))) {
-                ra_bigint_free(a);
-                RA_TRACE("^");
-                return -1;
-        }
-        for (int i=0; i<500; ++i) {
-                if (!(t1 = ra_bigint_add(a, b))) {
-                        ra_bigint_free(a);
-                        ra_bigint_free(b);
-                        RA_TRACE("^");
-                        return -1;
-                }
-                ra_bigint_free(a);
-                a = b;
-                b = t1;
-                t1 = t2 = t3 = t4 = NULL;
-                if (!(t1 = ra_bigint_mul(b, b)) ||
-                    !(t2 = ra_bigint_mul(t1, RA_BIGINT_CONST[5])) ||
-                    !(t3 = ra_bigint_add(t2, RA_BIGINT_CONST[4])) ||
-                    !(t4 = ra_bigint_sub(t2, RA_BIGINT_CONST[4]))) {
-                        ra_bigint_free(a);
-                        ra_bigint_free(b);
-                        ra_bigint_free(t1);
-                        ra_bigint_free(t2);
-                        ra_bigint_free(t3);
-                        ra_bigint_free(t4);
-                        RA_TRACE("^");
-                        return -1;
-                }
-                if (!(e1 = ra_bigint_is_square(t3)) &&
-                    !(e2 = ra_bigint_is_square(t4))) {
-                        ra_bigint_free(a);
-                        ra_bigint_free(b);
-                        ra_bigint_free(t1);
-                        ra_bigint_free(t2);
-                        ra_bigint_free(t3);
-                        ra_bigint_free(t4);
-                        RA_TRACE("software bug detected");
-                        return -1;
-                }
-                ra_bigint_free(t1);
-                ra_bigint_free(t2);
-                ra_bigint_free(t3);
-                ra_bigint_free(t4);
-                if ((0 > e1) || (0 > e2)) {
-                        RA_TRACE("^");
-                        return -1;
-                }
-        }
-        ra_bigint_free(a);
-        ra_bigint_free(b);
-
         // convert smallest int
 
         if (!(a = ra_bigint_int(-9223372036854775807LL - 1)) ||
@@ -913,5 +859,60 @@ ra_bigint_test(void)
         }
         RA_FREE(s);
         ra_bigint_free(a);
+
+        // fibonacci sequence
+
+        if (!(a = ra_bigint_int(0)) || !(b = ra_bigint_int(1))) {
+                ra_bigint_free(a);
+                RA_TRACE("^");
+                return -1;
+        }
+        for (int i=0; i<500; ++i) {
+                if (!(t1 = ra_bigint_add(a, b))) {
+                        ra_bigint_free(a);
+                        ra_bigint_free(b);
+                        RA_TRACE("^");
+                        return -1;
+                }
+                ra_bigint_free(a);
+                a = b;
+                b = t1;
+                t1 = t2 = t3 = t4 = NULL;
+                if (!(t1 = ra_bigint_mul(b, b)) ||
+                    !(t2 = ra_bigint_mul(t1, RA_BIGINT_CONST[5])) ||
+                    !(t3 = ra_bigint_add(t2, RA_BIGINT_CONST[4])) ||
+                    !(t4 = ra_bigint_sub(t2, RA_BIGINT_CONST[4]))) {
+                        ra_bigint_free(a);
+                        ra_bigint_free(b);
+                        ra_bigint_free(t1);
+                        ra_bigint_free(t2);
+                        ra_bigint_free(t3);
+                        ra_bigint_free(t4);
+                        RA_TRACE("^");
+                        return -1;
+                }
+                e1 = e2 = 0;
+                if (!(e1 = ra_bigint_is_square(t3)) &&
+                    !(e2 = ra_bigint_is_square(t4))) {
+                        ra_bigint_free(a);
+                        ra_bigint_free(b);
+                        ra_bigint_free(t1);
+                        ra_bigint_free(t2);
+                        ra_bigint_free(t3);
+                        ra_bigint_free(t4);
+                        RA_TRACE("software bug detected");
+                        return -1;
+                }
+                ra_bigint_free(t1);
+                ra_bigint_free(t2);
+                ra_bigint_free(t3);
+                ra_bigint_free(t4);
+                if ((0 > e1) || (0 > e2)) {
+                        RA_TRACE("^");
+                        return -1;
+                }
+        }
+        ra_bigint_free(a);
+        ra_bigint_free(b);
         return 0;
 }
