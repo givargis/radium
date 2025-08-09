@@ -192,7 +192,7 @@ backprop(struct ra_mlp *mlp, const double *y)
         }
 }
 
-static int
+static unsigned
 argmax(const double *a, int n)
 {
         int m;
@@ -203,7 +203,7 @@ argmax(const double *a, int n)
                         m = i;
                 }
         }
-        return m;
+        return (unsigned)m;
 }
 
 ra_mlp_t
@@ -490,12 +490,12 @@ ra_mlp_test(void)
         for (int i=0; i<(TRAIN_N/BATCH_SIZE); ++i) {
                 for (int j=0; j<BATCH_SIZE; ++j) {
                         for (int k=0; k<(28*28); ++k) {
-                                x[j * (28 * 28) + k] = (*images++) / 255.0;
+                                x[j * (28 * 28) + k] = (*(images++)) / 255.0;
                         }
                         for (int k=0; k<10; ++k) {
                                 y[j * 10 + k] = 0.0;
                         }
-                        y[j * 10 + (*labels++)] = 1.0;
+                        y[j * 10 + (*(labels++))] = 1.0;
                 }
                 ra_mlp_train(mlp, x, y, 0.1, BATCH_SIZE);
         }
@@ -513,9 +513,9 @@ ra_mlp_test(void)
         errors = 0;
         for (int i=0; i<TEST_N; ++i) {
                 for (int k=0; k<(28*28); ++k) {
-                        x[k] = (*images++) / 255.0;
+                        x[k] = (*(images++)) / 255.0;
                 }
-                if (argmax(ra_mlp_activate(mlp, x), 10) != (int)(*labels++)) {
+                if (argmax(ra_mlp_activate(mlp, x), 10) != (*(labels++))) {
                         ++errors;
                 }
         }
