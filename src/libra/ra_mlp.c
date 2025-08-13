@@ -219,8 +219,8 @@ ra_mlp_open(int input, int output, int hidden, int layers)
 
         // initialize
 
-        if (!(mlp = malloc(sizeof (struct ra_mlp)))) {
-                RA_TRACE("out of memory");
+        if (!(mlp = ra_malloc(sizeof (struct ra_mlp)))) {
+                RA_TRACE("^");
                 return 0;
         }
         memset(mlp, 0, sizeof (struct ra_mlp));
@@ -231,18 +231,19 @@ ra_mlp_open(int input, int output, int hidden, int layers)
 
         // network
 
-        if (!(mlp->net = malloc(mlp->layers * sizeof (mlp->net[0])))) {
+        if (!(mlp->net = ra_malloc(mlp->layers * sizeof (mlp->net[0])))) {
                 ra_mlp_close(mlp);
-                RA_TRACE("out of memory");
+                RA_TRACE("^");
                 return 0;
         }
         memset(mlp->net, 0, mlp->layers * sizeof (mlp->net[0]));
         for (int l=0; l<mlp->layers; ++l) {
                 n = size(mlp, l);
-                if (!(mlp->net[l].a_ = malloc(n * sizeof (mlp->net[0].a_))) ||
-                    !(mlp->net[l].d_ = malloc(n * sizeof (mlp->net[0].d_)))) {
+                mlp->net[l].a_ = ra_malloc(n * sizeof (mlp->net[0].a_));
+                mlp->net[l].d_ = ra_malloc(n * sizeof (mlp->net[0].d_));
+                if (!mlp->net[l].a_ || !mlp->net[l].d_) {
                         ra_mlp_close(mlp);
-                        RA_TRACE("out of memory");
+                        RA_TRACE("^");
                         return 0;
                 }
                 memset(mlp->net[l].a_, 0, n * sizeof (mlp->net[0].a_));
@@ -251,16 +252,16 @@ ra_mlp_open(int input, int output, int hidden, int layers)
         for (int l=1; l<mlp->layers; ++l) {
                 n = size(mlp, l);
                 m = size(mlp, l - 1);
-                mlp->net[l].w = malloc(n * m * sizeof (mlp->net[0].w));
-                mlp->net[l].b = malloc(n * 1 * sizeof (mlp->net[0].w));
-                mlp->net[l].w_ = malloc(n * m * sizeof (mlp->net[0].w));
-                mlp->net[l].b_ = malloc(n * 1 * sizeof (mlp->net[0].w));
+                mlp->net[l].w = ra_malloc(n * m * sizeof (mlp->net[0].w));
+                mlp->net[l].b = ra_malloc(n * 1 * sizeof (mlp->net[0].w));
+                mlp->net[l].w_ = ra_malloc(n * m * sizeof (mlp->net[0].w));
+                mlp->net[l].b_ = ra_malloc(n * 1 * sizeof (mlp->net[0].w));
                 if (!mlp->net[l].w ||
                     !mlp->net[l].b ||
                     !mlp->net[l].w_ ||
                     !mlp->net[l].b_) {
                         ra_mlp_close(mlp);
-                        RA_TRACE("out of memory");
+                        RA_TRACE("^");
                         return 0;
                 }
                 memset(mlp->net[l].w, 0, n * m * sizeof (mlp->net[0].w));
@@ -438,13 +439,13 @@ ra_mlp_test(void)
                 return -1;
         }
         images = labels = NULL;
-        if (!(images = malloc(RA_BASE64_DECODE_LEN(ra_strlen(s1)))) ||
-            !(labels = malloc(RA_BASE64_DECODE_LEN(ra_strlen(s2))))) {
+        if (!(images = ra_malloc(RA_BASE64_DECODE_LEN(ra_strlen(s1)))) ||
+            !(labels = ra_malloc(RA_BASE64_DECODE_LEN(ra_strlen(s2))))) {
                 RA_FREE(s1);
                 RA_FREE(s2);
                 RA_FREE(images);
                 RA_FREE(labels);
-                RA_TRACE("out of memory");
+                RA_TRACE("^");
                 return -1;
         }
         if (ra_base64_decode(images, &n1, s1) ||
@@ -475,13 +476,13 @@ ra_mlp_test(void)
 
         // initialize
 
-        if (!(x = malloc(BATCH_SIZE * 28 * 28 * sizeof (x[0]))) ||
-            !(y = malloc(BATCH_SIZE *  1 * 10 * sizeof (y[0])))) {
+        if (!(x = ra_malloc(BATCH_SIZE * 28 * 28 * sizeof (x[0]))) ||
+            !(y = ra_malloc(BATCH_SIZE *  1 * 10 * sizeof (y[0])))) {
                 RA_FREE(x);
                 RA_FREE(images);
                 RA_FREE(labels);
                 ra_mlp_close(mlp);
-                RA_TRACE("out of memory");
+                RA_TRACE("^");
                 return -1;
         }
 

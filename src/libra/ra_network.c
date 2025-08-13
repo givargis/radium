@@ -114,7 +114,7 @@ _server_(void *ctx)
                         client = client->link;
                 }
                 if (!client) {
-                        if (!(client = malloc(sizeof (struct client)))) {
+                        if (!(client = ra_malloc(sizeof (struct client)))) {
                                 sclose(fd);
                                 RA_TRACE("out of memory (ignored)");
                                 continue;
@@ -153,8 +153,8 @@ ra_network_listen(const char *hostname,
 
         // initialize
 
-        if (!(network = malloc(sizeof (struct ra_network)))) {
-                RA_TRACE("out of memory");
+        if (!(network = ra_malloc(sizeof (struct ra_network)))) {
+                RA_TRACE("^");
                 return -1;
         }
         memset(network, 0, sizeof (struct ra_network));
@@ -185,10 +185,10 @@ ra_network_listen(const char *hostname,
                         p = p->ai_next;
                         continue;
                 }
-                if (!(server = malloc(sizeof (struct server)))) {
+                if (!(server = ra_malloc(sizeof (struct server)))) {
                         sclose(fd);
                         ra_network_close(network);
-                        RA_TRACE("out of memory");
+                        RA_TRACE("^");
                         return -1;
                 }
                 memset(server, 0, sizeof (struct server));
@@ -249,8 +249,8 @@ ra_network_connect(const char *hostname, const char *servname)
 
         // initialize
 
-        if (!(network = malloc(sizeof (struct ra_network)))) {
-                RA_TRACE("out of memory");
+        if (!(network = ra_malloc(sizeof (struct ra_network)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memset(network, 0, sizeof (struct ra_network));

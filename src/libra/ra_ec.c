@@ -370,9 +370,10 @@ ra_ec_test(void)
 
         // initialize
 
-        if (!(buf1 = malloc((K + 2) * N)) || !(buf2 = malloc((K + 2) * N))) {
+        if (!(buf1 = ra_malloc((K + 2) * N)) ||
+            !(buf2 = ra_malloc((K + 2) * N))) {
                 RA_FREE(buf1);
-                RA_TRACE("out of memory");
+                RA_TRACE("^");
                 return -1;
         }
 

@@ -28,9 +28,9 @@ ra_file_read(const char *pathname)
                 RA_TRACE("unable to get file stat");
                 return NULL;
         }
-        if (!(s = malloc(size + PAD))) {
+        if (!(s = ra_malloc(size + PAD))) {
                 fclose(file);
-                RA_TRACE("out of memory");
+                RA_TRACE("^");
                 return NULL;
         }
         if (size && (1 != fread(s, size, 1, file))) {

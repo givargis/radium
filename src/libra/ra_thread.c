@@ -45,8 +45,8 @@ ra_thread_open(ra_thread_fnc_t fnc, void *ctx)
 
         assert( fnc );
 
-        if (!(thread = malloc(sizeof (struct ra_thread)))) {
-                RA_TRACE("out of memory");
+        if (!(thread = ra_malloc(sizeof (struct ra_thread)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         thread->ctx = ctx;
@@ -83,8 +83,8 @@ ra_mutex_open(void)
 {
         struct ra_mutex *mutex;
 
-        if (!(mutex = malloc(sizeof (struct ra_mutex)))) {
-                RA_TRACE("out of memory");
+        if (!(mutex = ra_malloc(sizeof (struct ra_mutex)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memset(mutex, 0, sizeof (struct ra_mutex));
@@ -131,8 +131,8 @@ ra_cond_open(ra_mutex_t mutex)
 
         assert( mutex );
 
-        if (!(cond = malloc(sizeof (struct ra_cond)))) {
-                RA_TRACE("out of memory");
+        if (!(cond = ra_malloc(sizeof (struct ra_cond)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memset(cond, 0, sizeof (struct ra_cond));

@@ -57,15 +57,15 @@ create(int width)
                 RA_TRACE("integer exceeds maximum limit");
                 return NULL;
         }
-        if (!(z = malloc(sizeof (struct ra_bigint)))) {
-                RA_TRACE("out of memory");
+        if (!(z = ra_malloc(sizeof (struct ra_bigint)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memset(z, 0, sizeof (struct ra_bigint));
         if ((z->width = width)) {
-                if (!(z->parts = malloc(z->width * sizeof (z->parts[0])))) {
+                if (!(z->parts = ra_malloc(z->width * sizeof (z->parts[0])))) {
                         destroy(z);
-                        RA_TRACE("out of memory");
+                        RA_TRACE("^");
                         return NULL;
                 }
         }
@@ -580,10 +580,10 @@ print(const struct ra_bigint *a)
         char *buf;
 
         len = count_digits(a) + 2;
-        if (!(buf = malloc(len)) ||
-            !(stack = malloc(RA_DUP(len, 18) * sizeof (stack[0])))) {
+        if (!(buf = ra_malloc(len)) ||
+            !(stack = ra_malloc(RA_DUP(len, 18) * sizeof (stack[0])))) {
                 RA_FREE(buf);
-                RA_TRACE("out of memory");
+                RA_TRACE("^");
                 return NULL;
         }
         if (!(q = clone(a))) {

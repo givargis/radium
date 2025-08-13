@@ -52,14 +52,14 @@ ra_bitset_open(uint64_t size)
 
         assert( size );
 
-        if (!(bitset = malloc(sizeof (struct ra_bitset)))) {
+        if (!(bitset = ra_malloc(sizeof (struct ra_bitset)))) {
                 RA_TRACE("out of parts");
                 return NULL;
         }
         memset(bitset, 0, sizeof (struct ra_bitset));
         bitset->size = size;
-        if (!(bitset->parts[0] = malloc(RA_DUP(bitset->size, 64) * 8)) ||
-            !(bitset->parts[1] = malloc(RA_DUP(bitset->size, 64) * 8))) {
+        if (!(bitset->parts[0] = ra_malloc(RA_DUP(bitset->size, 64) * 8)) ||
+            !(bitset->parts[1] = ra_malloc(RA_DUP(bitset->size, 64) * 8))) {
                 ra_bitset_close(bitset);
                 RA_TRACE("out of parts");
                 return NULL;
@@ -216,8 +216,8 @@ ra_bitset_test(void)
 
         // random operations
 
-        if (!(table = malloc(M * sizeof (table[0])))) {
-                RA_TRACE("out of memory");
+        if (!(table = ra_malloc(M * sizeof (table[0])))) {
+                RA_TRACE("^");
                 return -1;
         }
         memset(table, 0, M * sizeof (table[0]));

@@ -25,14 +25,14 @@
         }                                               \
         while (0)
 
-#define MKN(j, n, op_)                                  \
-        do {                                            \
-                if (!((n) = allocate((j)))) {           \
-                        ERROR((j), "out of memory");    \
-                        return NULL;                    \
-                }                                       \
-                (n)->op = (op_);                        \
-        }                                               \
+#define MKN(j, n, op_)                          \
+        do {                                    \
+                if (!((n) = allocate((j)))) {   \
+                        ERROR((j), "^");        \
+                        return NULL;            \
+                }                               \
+                (n)->op = (op_);                \
+        }                                       \
         while (0)
 
 struct ra_json {
@@ -78,8 +78,8 @@ allocate(struct ra_json *json)
 
         size = sizeof (struct ra_json_node);
         if (!json->chunk || (CHUNK_SIZE < (json->size + size))) {
-                if (!(chunk = malloc(CHUNK_SIZE))) {
-                        RA_TRACE("out of memory");
+                if (!(chunk = ra_malloc(CHUNK_SIZE))) {
+                        RA_TRACE("^");
                         return NULL;
                 }
                 (*((void **)chunk)) = json->chunk;
@@ -433,8 +433,8 @@ ra_json_open(const char *s)
 
         // initialize
 
-        if (!(json = malloc(sizeof (struct ra_json)))) {
-                RA_TRACE("out of memory");
+        if (!(json = ra_malloc(sizeof (struct ra_json)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memset(json, 0, sizeof (struct ra_json));

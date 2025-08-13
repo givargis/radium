@@ -77,6 +77,20 @@ ra_time(void)
         return (uint64_t)timeval.tv_sec * 1000000 + (uint64_t)timeval.tv_usec;
 }
 
+void *
+ra_malloc(size_t n)
+{
+        void *p;
+
+        assert( n );
+
+        if (!(p = malloc(n))) {
+                RA_TRACE("out of memory");
+                return NULL;
+        }
+        return p;
+}
+
 char *
 ra_strdup(const char *s)
 {
@@ -84,8 +98,8 @@ ra_strdup(const char *s)
         char *p;
 
         n = ra_strlen(s);
-        if (!(p = malloc(n + 1))) {
-                RA_TRACE("out of memory");
+        if (!(p = ra_malloc(n + 1))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memcpy(p, s, n);
@@ -146,8 +160,8 @@ ra_string(const char *format, ...)
         va_start(ap, format);
         n = vsnprintf(NULL, 0, format, ap);
         va_end(ap);
-        if (!(p = malloc(n + 1))) {
-                RA_TRACE("out of memory");
+        if (!(p = ra_malloc(n + 1))) {
+                RA_TRACE("^");
                 return NULL;
         }
         va_start(ap, format);
@@ -174,8 +188,8 @@ ra_pathname(const char *name)
                 path = "";
         }
         n = ra_strlen(path) + (ra_strlen(name) ? ra_strlen(name) : 32) + 2;
-        if (!(pathname = malloc(n))) {
-                RA_TRACE("out of memory");
+        if (!(pathname = ra_malloc(n))) {
+                RA_TRACE("^");
                 return NULL;
         }
         if (name && strlen(name)) {

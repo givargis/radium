@@ -170,8 +170,8 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
         int d;
 
         if (!root) {
-                if (!(root = malloc(sizeof (struct node)))) {
-                        RA_TRACE("out of memory");
+                if (!(root = ra_malloc(sizeof (struct node)))) {
+                        RA_TRACE("^");
                         return NULL;
                 }
                 memset(root, 0, sizeof (struct node));
@@ -232,8 +232,8 @@ ra_avl_open(void)
 {
         struct ra_avl *avl;
 
-        if (!(avl = malloc(sizeof (struct ra_avl)))) {
-                RA_TRACE("out of memory");
+        if (!(avl = ra_malloc(sizeof (struct ra_avl)))) {
+                RA_TRACE("^");
                 return NULL;
         }
         memset(avl, 0, sizeof (struct ra_avl));

@@ -143,13 +143,13 @@ ra_base64_test(void)
                 buf = NULL;
                 buf_ = NULL;
                 len = rand() % N + 1;
-                if (!(s = malloc(RA_BASE64_ENCODE_LEN(len) + 1)) ||
-                    !(buf = malloc(len)) ||
-                    !(buf_ = malloc(len))) {
+                if (!(s = ra_malloc(RA_BASE64_ENCODE_LEN(len) + 1)) ||
+                    !(buf = ra_malloc(len)) ||
+                    !(buf_ = ra_malloc(len))) {
                         RA_FREE(s);
                         RA_FREE(buf);
                         RA_FREE(buf_);
-                        RA_TRACE("out of memory");
+                        RA_TRACE("^");
                         return -1;
                 }
                 for (size_t j=0; j<len; ++j) {

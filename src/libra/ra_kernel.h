@@ -74,6 +74,8 @@ size_t ra_memory(void);
 
 uint64_t ra_time(void);
 
+void *ra_malloc(size_t n);
+
 char *ra_strdup(const char *s);
 
 void ra_printf(ra_color_t color, const char *format, ...);

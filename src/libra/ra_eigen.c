@@ -14,8 +14,8 @@ allocate(int rows, int cols)
 {
         double *matrix;
 
-        if (!(matrix = malloc(rows * cols * sizeof (matrix[0])))) {
-                RA_TRACE("out of memory");
+        if (!(matrix = ra_malloc(rows * cols * sizeof (matrix[0])))) {
+                RA_TRACE("^");
                 return NULL;
         }
         return matrix;
@@ -254,10 +254,10 @@ ra_eigen_test(void)
 
         while (k--) {
                 n = k + 2;
-                if (!(a = malloc(n * n * sizeof (a[0]))) ||
-                    !(av = malloc(n * n * sizeof (av[0])))) {
+                if (!(a = ra_malloc(n * n * sizeof (a[0]))) ||
+                    !(av = ra_malloc(n * n * sizeof (av[0])))) {
                         RA_FREE(a);
-                        RA_TRACE("out of memory");
+                        RA_TRACE("^");
                         return -1;
                 }
                 for (int i=0; i<n; ++i) {
