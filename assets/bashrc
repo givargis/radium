@@ -1,0 +1,11 @@
+[ -z "$PS1" ] && return
+
+PS1='\u@\h:$PWD\n\# > '
+
+alias cp="cp -i"
+alias mv="mv -i"
+alias rm="rm -i"
+alias ls="ls --color=auto"
+alias clean="$HOME/.clean"
+
+umask 022

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+find $HOME/ -name "#*"              -exec rm -rf '{}' \;
+find $HOME/ -name "*~"              -exec rm -rf '{}' \;
+find $HOME/ -name ".#*"             -exec rm -rf '{}' \;
+find $HOME/ -name ".*~"             -exec rm -rf '{}' \;
+find $HOME/ -name ".DS_Store"       -exec rm -rf '{}' \;
+find $HOME/ -name ".bash_history"   -exec rm -rf '{}' \;
+find $HOME/ -name ".bash_logout"    -exec rm -rf '{}' \;
+find $HOME/ -name ".bash_profile"   -exec rm -rf '{}' \;
+find $HOME/ -name ".bash_sessions"  -exec rm -rf '{}' \;
+find $HOME/ -name ".cache"          -exec rm -rf '{}' \;
+find $HOME/ -name ".cups"           -exec rm -rf '{}' \;
+find $HOME/ -name ".emacs.d"        -exec rm -rf '{}' \;
+find $HOME/ -name ".keras"          -exec rm -rf '{}' \;
+find $HOME/ -name ".lesshst"        -exec rm -rf '{}' \;
+find $HOME/ -name ".lldb"           -exec rm -rf '{}' \;
+find $HOME/ -name ".matplotlib"     -exec rm -rf '{}' \;
+find $HOME/ -name ".python_history" -exec rm -rf '{}' \;
+find $HOME/ -name ".ssh"            -exec rm -rf '{}' \;
+find $HOME/ -name ".viminfo"        -exec rm -rf '{}' \;
+find $HOME/ -name ".wget-hsts"      -exec rm -rf '{}' \;
+find $HOME/ -name ".zsh_history"    -exec rm -rf '{}' \;
+find $HOME/ -name ".zsh_sessions"   -exec rm -rf '{}' \;
+find $HOME/ -name "__MACOSX"        -exec rm -rf '{}' \;
+
+clear
