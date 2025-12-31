@@ -2,7 +2,7 @@
 
 AR     = ar
 CC     = gcc
-CFLAGS = -std=c99 -pedantic -Wall -Wextra -Werror -Wfatal-errors -O3
+CFLAGS = -ansi -pedantic -Wall -Wextra -Werror -Wfatal-errors -O3
 DEST   = libcore.a
 
 SRCS = $(wildcard *.c)
