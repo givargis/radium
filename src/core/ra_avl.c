@@ -191,8 +191,7 @@ ra_avl_update(ra_avl_t avl, const char *key, const void *val)
 {
 	struct node *root;
 
-	assert( avl );
-	assert( key && strlen(key) );
+	assert( avl && key && strlen(key) );
 
 	if (!(root = update(avl, avl->root, key, val))) {
 		RA_TRACE("^");
@@ -208,8 +207,7 @@ ra_avl_lookup(ra_avl_t avl, const char *key)
 	const struct node *node;
 	int d;
 
-	assert( avl );
-	assert( key && strlen(key) );
+	assert( avl && key && strlen(key) );
 
 	node = avl->root;
 	while (node) {
@@ -226,8 +224,7 @@ ra_avl_iterate(ra_avl_t avl, ra_avl_fnc_t fnc, void *ctx)
 {
 	int e;
 
-	assert( avl );
-	assert( fnc );
+	assert( avl && fnc );
 
 	if ((e = iterate(avl->root, fnc, ctx))) {
 		return e;

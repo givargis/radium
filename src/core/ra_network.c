@@ -325,8 +325,7 @@ ra_network_read(ra_network_t network, void *buf_, size_t len)
 	char *buf = (char *)buf_;
 	ssize_t n;
 
-	assert( network );
-	assert( !len || buf );
+	assert( network && (!len || buf) );
 
 	while (len) {
 		if (0 >= (n = read(network->fd, buf, len))) {
@@ -345,8 +344,7 @@ ra_network_write(ra_network_t network, const void *buf_, size_t len)
 	const char *buf = (const char *)buf_;
 	ssize_t n;
 
-	assert( network );
-	assert( !len || buf );
+	assert( network && (!len || buf) );
 
 	while (len) {
 		if (0 >= (n = write(network->fd, buf, len))) {
