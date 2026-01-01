@@ -32,14 +32,13 @@ struct ra_network {
 	} *servers;
 };
 
-static int _intflag_;
+static int _flag_;
 
 static void
 sigint(int signum)
 {
 	if (SIGINT == signum) {
-		__sync_fetch_and_add(&_intflag_, 1);
-		printf("\r  \r");
+		_flag_ = 1;
 	}
 }
 
@@ -214,7 +213,7 @@ ra_network_listen(const char *hostname,
 
 	/* wait */
 
-	_intflag_ = 0;
+	_flag_ = 0;
 	if ((SIG_ERR == signal(SIGHUP, sigint)) ||
 	    (SIG_ERR == signal(SIGPIPE, sigint)) ||
 	    (SIG_ERR == signal(SIGINT, sigint))) {
@@ -222,7 +221,7 @@ ra_network_listen(const char *hostname,
 		RA_TRACE("system failure detected");
 		return -1;
 	}
-	while (!__sync_fetch_and_add(&_intflag_, 0)) {
+	while (!__sync_fetch_and_add(&_flag_, 0)) {
 		sleep(1);
 	}
 	(void)signal(SIGHUP, SIG_DFL);
@@ -334,8 +333,8 @@ ra_network_read(ra_network_t network, void *buf_, size_t len)
 			RA_TRACE("network read failed");
 			return -1;
 		}
-		buf += n;
-		len -= n;
+		buf += (size_t)n;
+		len -= (size_t)n;
 	}
 	return 0;
 }
@@ -350,7 +349,7 @@ ra_network_write(ra_network_t network, const void *buf_, size_t len)
 	assert( !len || buf );
 
 	while (len) {
-		if (0 > (n = write(network->fd, buf, len))) {
+		if (0 >= (n = write(network->fd, buf, len))) {
 			RA_TRACE("network write failed");
 			return -1;
 		}
