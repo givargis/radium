@@ -9,6 +9,7 @@
 #include "ra_device.h"
 #include "ra_ec.h"
 #include "ra_fft.h"
+#include "ra_jitc.h"
 #include "ra_json.h"
 #include "ra_hash.h"
 #include "ra_network.h"
