@@ -3,6 +3,8 @@
 #ifndef __RA_KERNEL_H__
 #define __RA_KERNEL_H__
 
+#include <errno.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -42,6 +44,8 @@ void ra_kernel_init(int notrace);
 void ra_unlink(const char *pathname);
 
 void ra_trace(const char *format, ...);
+
+void ra_error(const char *format, ...);
 
 void ra_sprintf(char *buf, size_t len, const char *format, ...);
 

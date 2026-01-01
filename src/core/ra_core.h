@@ -6,6 +6,7 @@
 #include "ra_avl.h"
 #include "ra_base64.h"
 #include "ra_ec.h"
+#include "ra_json.h"
 #include "ra_hash.h"
 #include "ra_network.h"
 #include "ra_sha3.h"

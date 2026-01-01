@@ -37,7 +37,7 @@ ra_trace(const char *format, ...)
 
 	if (!_notrace_) {
 		if ((term = isatty(STDOUT_FILENO))) {
-			printf("\033[1m\033[33mtrace:\033[0m \033[1m");
+			printf("\033[1m\033[33mtrace:\033[0m ");
 		} else {
 			printf("trace: ");
 		}
@@ -46,6 +46,25 @@ ra_trace(const char *format, ...)
 		va_end(ap);
 		printf("%s\n", term ? "\033[0m" : "");
 	}
+}
+
+void
+ra_error(const char *format, ...)
+{
+	va_list ap;
+	int term;
+
+	assert( format );
+
+	if ((term = isatty(STDOUT_FILENO))) {
+		printf("\033[1m\033[31merror:\033[0m ");
+	} else {
+		printf("error: ");
+	}
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	printf("%s\n", term ? "\033[0m" : "");
 }
 
 void

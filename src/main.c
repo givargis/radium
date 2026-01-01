@@ -6,5 +6,7 @@ int
 main(void)
 {
 	ra_core_init(0);
+
+	ra_json_test();
 	return 0;
 }
