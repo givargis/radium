@@ -41,6 +41,4 @@ const struct ra_json_node *ra_json_root(ra_json_t json);
 
 int ra_json_array_size(const struct ra_json_node *node);
 
-int ra_json_test(void);
-
 #endif /* __RA_JSON_H__ */

@@ -22,6 +22,8 @@
 
 #define RA_ARRAY_SIZE(a) ( sizeof ((a)) / sizeof ((a)[0]) )
 
+#define RA_STATIC static __attribute__((unused))
+
 #define RA_FREE(p)				\
 	do {					\
 		if (p) {			\
@@ -62,5 +64,37 @@ size_t ra_memory(void);
 int ra_cores(void);
 
 int ra_endian(void);
+
+RA_STATIC int
+ra_clz(uint64_t x)
+{
+	return __builtin_clzll(x);
+}
+
+RA_STATIC uint64_t
+ra_popcount(uint64_t x)
+{
+	return __builtin_popcountll(x);
+}
+
+RA_STATIC int
+ra_is_zero(const void *buf, uint64_t len)
+{
+	if (*((const char *)buf)) {
+		return 0;
+	}
+	return !memcmp(buf, ((const char *)buf) + 1, len - 1);
+}
+
+RA_STATIC void *
+ra_align(void *p, size_t n)
+{
+	size_t r;
+
+	if ((r = (size_t)p % n)) {
+		r = n - r;
+	}
+	return (void *)((char *)p + r);
+}
 
 #endif /* __RA_KERNEL_H__ */
