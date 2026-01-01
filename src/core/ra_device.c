@@ -38,7 +38,6 @@ ra_device_open(const char *pathname)
 
 	/* initialize */
 
-	u64 = u32 = 0;
 	if (!(device = malloc(sizeof (struct ra_device)))) {
 		RA_TRACE("out of memory");
 		return NULL;
