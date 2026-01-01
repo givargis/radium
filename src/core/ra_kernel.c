@@ -5,12 +5,9 @@
 
 #include "ra_kernel.h"
 
-static int _notrace_;
-
 void
-ra_kernel_init(int notrace)
+ra_kernel_init(void)
 {
-	_notrace_ = notrace ? 1 : 0;
 	if ((8 != sizeof (long)) ||
 	    (8 != sizeof (void *)) ||
 	    (8 != sizeof (size_t))) {
@@ -28,28 +25,7 @@ ra_unlink(const char *pathname)
 }
 
 void
-ra_trace(const char *format, ...)
-{
-	va_list ap;
-	int term;
-
-	assert( format );
-
-	if (!_notrace_) {
-		if ((term = isatty(STDOUT_FILENO))) {
-			printf("\033[1m\033[33mtrace:\033[0m ");
-		} else {
-			printf("trace: ");
-		}
-		va_start(ap, format);
-		vprintf(format, ap);
-		va_end(ap);
-		printf("%s\n", term ? "\033[0m" : "");
-	}
-}
-
-void
-ra_error(const char *format, ...)
+ra_printf(ra_color_t color, const char *format, ...)
 {
 	va_list ap;
 	int term;
@@ -57,14 +33,17 @@ ra_error(const char *format, ...)
 	assert( format );
 
 	if ((term = isatty(STDOUT_FILENO))) {
-		printf("\033[1m\033[31merror:\033[0m ");
-	} else {
-		printf("error: ");
+		printf("\033[%dm", color / 2 + 30);
+		if (0 != (color % 2)) {
+			printf("\033[1m");
+		}
 	}
 	va_start(ap, format);
 	vprintf(format, ap);
 	va_end(ap);
-	printf("%s\n", term ? "\033[0m" : "");
+	if (term) {
+		printf("\033[0m");
+	}
 }
 
 void

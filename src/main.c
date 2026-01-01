@@ -5,6 +5,7 @@
 int
 main(void)
 {
-	ra_core_init(0);
+	ra_core_init();
+
 	return 0;
 }

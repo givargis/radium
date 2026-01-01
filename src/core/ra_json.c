@@ -7,11 +7,14 @@
 		(j)->curr = "";				\
 		(j)->token.op = OP_EOF;			\
 		if (!(j)->stop) {			\
-			ra_error("json: "		\
-				 "%u:%u: %s\n",		\
-				 (j)->lineno,		\
-				 (j)->column,		\
-				 (m));			\
+			ra_printf(RA_COLOR_RED_BOLD,	\
+				  "error: ");		\
+			ra_printf(RA_COLOR_BLACK,	\
+				  "json: "		\
+				  "%u:%u: %s\n",	\
+				  (j)->lineno,		\
+				  (j)->column,		\
+				  (m));			\
 			RA_TRACE("syntax error");       \
 		}					\
 		(j)->stop = 1;				\

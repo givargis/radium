@@ -14,6 +14,6 @@
 #include "ra_sha3.h"
 #include "ra_thread.h"
 
-void ra_core_init(int notrace);
+void ra_core_init(void);
 
 #endif /* __RA_CORE_H__ */
