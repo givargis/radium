@@ -3,6 +3,7 @@
 #ifndef __RA_KERNEL_H__
 #define __RA_KERNEL_H__
 
+#include <math.h>
 #include <errno.h>
 #include <ctype.h>
 #include <stdio.h>

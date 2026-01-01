@@ -7,6 +7,7 @@
 #include "ra_base64.h"
 #include "ra_bitset.h"
 #include "ra_ec.h"
+#include "ra_fft.h"
 #include "ra_json.h"
 #include "ra_hash.h"
 #include "ra_network.h"
