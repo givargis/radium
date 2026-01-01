@@ -17,6 +17,18 @@ ra_kernel_init(void)
 }
 
 void
+ra_sleep(uint64_t us)
+{
+	struct timespec in, out;
+
+	in.tv_sec = (time_t)(us / 1000000);
+	in.tv_nsec = (long)(us % 1000000) * 1000;
+	while (nanosleep(&in, &out)) {
+		in = out;
+	}
+}
+
+void
 ra_unlink(const char *pathname)
 {
 	if (pathname && strlen(pathname)) {

@@ -1,6 +1,6 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
-#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
 
 #include <netinet/tcp.h>
 #include <sys/uio.h>

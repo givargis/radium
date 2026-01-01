@@ -64,6 +64,8 @@ typedef enum {
 
 void ra_kernel_init(void);
 
+void ra_sleep(uint64_t us);
+
 void ra_unlink(const char *pathname);
 
 void ra_trace(const char *format, ...);
