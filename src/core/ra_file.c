@@ -41,13 +41,11 @@ ra_file_read(const char *pathname, size_t *len_)
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	if (len) {
-		if (len != fread(buf, 1, len, file)) {
-			RA_FREE(buf);
-			fclose(file);
-			RA_TRACE("file read failed");
-			return NULL;
-		}
+	if (len != fread(buf, 1, len, file)) {
+		RA_FREE(buf);
+		fclose(file);
+		RA_TRACE("file read failed");
+		return NULL;
 	}
 	fclose(file);
 	memset(buf + len, 0, PAD);
@@ -68,7 +66,7 @@ ra_file_write(const char *pathname, const void *buf, size_t len)
 		RA_TRACE("unable to open file");
 		return -1;
 	}
-	if (len && (len != fwrite(buf, 1, len, file))) {
+	if (len != fwrite(buf, 1, len, file)) {
 		fclose(file);
 		ra_unlink(pathname);
 		RA_TRACE("file write failed");
