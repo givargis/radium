@@ -6,6 +6,5 @@ int
 main(void)
 {
 	ra_core_init();
-
 	return 0;
 }

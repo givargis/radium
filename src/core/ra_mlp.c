@@ -129,11 +129,10 @@ randomize(struct ra_mlp *mlp)
 	for (l=1; l<mlp->layers; ++l) {
 		int n = size(mlp, l);
 		int m = size(mlp, l - 1);
-		float limit = sqrt(6.0 / (n + m));
+		float a = -sqrt(6.0 / (n * m)) * 1.0;
+		float b = +sqrt(6.0 / (n * m)) * 2.0;
 		for (i=0; i<(n*m); ++i) {
-			mlp->net[l].w[i]  = (rand() / (float)RAND_MAX);
-			mlp->net[l].w[i] *= (2.0 * limit);
-			mlp->net[l].w[i] -= limit;
+			mlp->net[l].w[i] = a + (rand() / (double)RAND_MAX) * b;
 		}
 	}
 }
@@ -178,29 +177,27 @@ backprop(struct ra_mlp *mlp, const float *y)
 		memset(mlp->net[l].d_, 0, n * sizeof (mlp->net[l].d_[0]));
 	}
 
-	/* last layer */
-
-	l = mlp->layers - 1;
-
 	/**
 	 * Quadratic Cost Function
 	 *
 	 * d_[L] := a_[L] − y
 	 */
 
+	l = mlp->layers - 1;
 	sub(mlp->net[l].d_, mlp->net[l].a_, y, size(mlp, l));
 
 	/**
 	 * d_[l] := (w[l+1]' * d_[l+1]) ⊙ σ′(a_[l])
 	 */
 
-	for (; l>0; --l) {
+	while (l) {
 		n = size(mlp, l);
 		m = size(mlp, l - 1);
 		mac2(mlp->net[l - 1].d_, mlp->net[l].w, mlp->net[l].d_, n, m);
 		if (1 < l) {
 			relud(mlp->net[l - 1].d_, mlp->net[l - 1].a_, m);
 		}
+		--l;
 	}
 
 	/**

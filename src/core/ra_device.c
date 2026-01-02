@@ -81,7 +81,7 @@ ra_device_open(const char *pathname)
 
 	if (fstat(device->fd, &st)) {
 		ra_device_close(device);
-		RA_TRACE("unable to get device stats");
+		RA_TRACE("unable to stat device");
 		return NULL;
 	}
 
@@ -97,7 +97,7 @@ ra_device_open(const char *pathname)
 	if (ioctl(device->fd, BLKGETSIZE64, &u64) ||
 	    ioctl(device->fd, BLKSSZGET, &u32)) {
 		ra_device_close(device);
-		RA_TRACE("unable to get device info");
+		RA_TRACE("unable to ioctl device");
 		return NULL;
 	}
 	device->size = u64;
@@ -108,7 +108,7 @@ ra_device_open(const char *pathname)
 	if (ioctl(device->fd, DKIOCGETBLOCKCOUNT, &u64) ||
 	    ioctl(device->fd, DKIOCGETBLOCKSIZE, &u32)) {
 		ra_device_close(device);
-		RA_TRACE("unable to get device info");
+		RA_TRACE("unable to ioctl device");
 		return NULL;
 	}
 	device->size = u64 * u32;

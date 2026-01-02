@@ -9,7 +9,7 @@ SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 
 all: $(OBJS)
-	@echo "[AR] $<"
+	@echo "[AR] $(DEST)"
 	@$(AR) rcs $(DEST) $(OBJS)
 
 %.o: %.c

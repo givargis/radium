@@ -8,9 +8,11 @@
 void
 ra_kernel_init(void)
 {
-	if ((8 != sizeof (long)) ||
+	if ((4  > sizeof (int)) ||
+	    (8 != sizeof (long)) ||
 	    (8 != sizeof (void *)) ||
-	    (8 != sizeof (size_t))) {
+	    (8 != sizeof (size_t)) ||
+	    (1000000 > RAND_MAX)) {
 		RA_TRACE("unsupported architecture (abort)");
 		abort();
 	}
@@ -73,65 +75,6 @@ ra_sprintf(char *buf, size_t len, const char *format, ...)
 		RA_TRACE("software bug detected (abort)");
 		abort();
 	}
-}
-
-char *
-ra_textfile_read(const char *pathname)
-{
-	const size_t PAD = 4;
-	FILE *file;
-	long size;
-	char *s;
-
-	assert( pathname && strlen(pathname) );
-
-	if (!(file = fopen(pathname, "r"))) {
-		RA_TRACE("unable to open file");
-		return NULL;
-	}
-	if (fseek(file, 0, SEEK_END) ||
-	    (0 > (size = ftell(file))) ||
-	    fseek(file, 0, SEEK_SET)) {
-		fclose(file);
-		RA_TRACE("unable to get file stat");
-		return NULL;
-	}
-	if (!(s = malloc(size + PAD))) {
-		fclose(file);
-		RA_TRACE("out of memory");
-		return NULL;
-	}
-	if (size && (1 != fread(s, size, 1, file))) {
-		RA_FREE(s);
-		fclose(file);
-		RA_TRACE("file read failed");
-		return NULL;
-	}
-	memset(s + size, 0, PAD);
-	fclose(file);
-	return s;
-}
-
-int
-ra_textfile_write(const char *pathname, const char *s)
-{
-	size_t size;
-	FILE *file;
-
-	assert( pathname && strlen(pathname) && s );
-
-	size = strlen(s);
-	if (!(file = fopen(pathname, "w"))) {
-		RA_TRACE("unable to open file");
-		return -1;
-	}
-	if (size && (1 != fwrite(s, size, 1, file))) {
-		fclose(file);
-		RA_TRACE("file write failed");
-		return -1;
-	}
-	fclose(file);
-	return 0;
 }
 
 uint64_t

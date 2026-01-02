@@ -74,10 +74,6 @@ void ra_printf(ra_color_t color, const char *format, ...);
 
 void ra_sprintf(char *buf, size_t len, const char *format, ...);
 
-char *ra_textfile_read(const char *pathname);
-
-int ra_textfile_write(const char *pathname, const char *s);
-
 uint64_t ra_time(void);
 
 size_t ra_page(void);
