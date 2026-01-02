@@ -20,8 +20,8 @@ fft(struct ra_fft_complex *v, struct ra_fft_complex *t, int n)
 		fft(ve, v, k);
 		fft(vo, v, k);
 		for (i=0; i<k; i++) {
-			w.r = cos(2 * PI * i / (double)n);
-			w.i = -sin(2 * PI * i / (double)n);
+			w.r = cos(2 * PI * i / (float)n);
+			w.i = -sin(2 * PI * i / (float)n);
 			z.r = w.r * vo[i].r - w.i * vo[i].i;
 			z.i = w.r * vo[i].i + w.i * vo[i].r;
 			v[i].r = ve[i].r + z.r;
@@ -48,8 +48,8 @@ ifft(struct ra_fft_complex *v, struct ra_fft_complex *t, int n)
 		ifft(ve, v, k);
 		ifft(vo, v, k);
 		for (i=0; i<k; i++) {
-			w.r = cos(2 * PI * i / (double)n);
-			w.i = sin(2 * PI * i / (double)n);
+			w.r = cos(2 * PI * i / (float)n);
+			w.i = sin(2 * PI * i / (float)n);
 			z.r = w.r * vo[i].r - w.i * vo[i].i;
 			z.i = w.r * vo[i].i + w.i * vo[i].r;
 			v[i].r = ve[i].r + z.r;

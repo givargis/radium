@@ -6,8 +6,8 @@
 #include "ra_kernel.h"
 
 struct ra_fft_complex {
-	double r;
-	double i;
+	float r;
+	float i;
 };
 
 void ra_fft_forward(struct ra_fft_complex *signal, int n);
