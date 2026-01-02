@@ -123,7 +123,7 @@ ra_device_close(ra_device_t device)
 {
 	if (device) {
 		if (0 <= device->fd) {
-			(void)close(device->fd);
+			close(device->fd);
 		}
 		memset(device, 0, sizeof (struct ra_device));
 		RA_FREE(device);

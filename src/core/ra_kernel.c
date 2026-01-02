@@ -32,7 +32,7 @@ void
 ra_unlink(const char *pathname)
 {
 	if (pathname && strlen(pathname)) {
-		(void)remove(pathname);
+		remove(pathname);
 	}
 }
 

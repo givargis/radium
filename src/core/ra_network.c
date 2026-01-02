@@ -224,9 +224,9 @@ ra_network_listen(const char *hostname,
 	while (!__sync_fetch_and_add(&_flag_, 0)) {
 		sleep(1);
 	}
-	(void)signal(SIGHUP, SIG_DFL);
-	(void)signal(SIGPIPE, SIG_DFL);
-	(void)signal(SIGINT, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
 	ra_network_close(network);
 	return 0;
 }
