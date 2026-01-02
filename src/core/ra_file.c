@@ -74,8 +74,8 @@ ra_file_write(const char *pathname, const void *buf, size_t len)
 	}
 	if (fclose(file)) {
 		ra_unlink(pathname);
-                RA_TRACE("file write failed");
-                return -1;
+		RA_TRACE("file write failed");
+		return -1;
 	}
 	return 0;
 }

@@ -29,15 +29,17 @@ static const uint8_t DECODE[] = {
 	99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99
 };
 
-void
+int
 ra_base64_encode(const void *buf_, size_t len, char *s)
 {
 	const uint8_t *buf = (const uint8_t *)buf_;
 	uint8_t a, b, c;
 	size_t i, q, r;
 
-	assert( buf && len && s );
-
+	if (!buf || !len || !s || !*s) {
+		RA_TRACE("invalid arguments");
+		return -1;
+	}
 	q = len / 3;
 	r = len % 3;
 	for (i=0; i<q; ++i) {
@@ -64,6 +66,7 @@ ra_base64_encode(const void *buf_, size_t len, char *s)
 		(*(s++)) = '=';
 	}
 	(*s) = '\0';
+	return 0;
 }
 
 int
@@ -73,51 +76,63 @@ ra_base64_decode(void *buf_, size_t *len, const char *s)
 	uint8_t a, b, c, d;
 	size_t i, n, q, r;
 
-	assert( buf && len && s );
-
-	n = strlen(s);
-	if (0 != (n % 4)) {
-		RA_TRACE("corrupted buffer");
+	if (!buf || !len || !s || !*s) {
+		RA_TRACE("invalid arguments");
 		return -1;
 	}
-	if ('=' == s[n - 1]) --n;
-	if ('=' == s[n - 1]) --n;
+	n = strlen(s);
+	if (0 != (n % 4)) {
+		RA_TRACE("invalid base64 string");
+		return -1;
+	}
 	q = n / 4;
-	r = n % 4;
-	(*len) = q * 3;
-	for (i=0; i<q; ++i) {
+	r = 0;
+	if ((0 < n) && ('=' == s[n - 1])) ++r;
+	if ((1 < n) && ('=' == s[n - 2])) ++r;
+	(*len) = q * 3 - r;
+	if (q) {
+		for (i=0; i<(q - 1); ++i) {
+			if ((63 < (a = DECODE[(uint8_t)(*(s++))])) ||
+			    (63 < (b = DECODE[(uint8_t)(*(s++))])) ||
+			    (63 < (c = DECODE[(uint8_t)(*(s++))])) ||
+			    (63 < (d = DECODE[(uint8_t)(*(s++))]))) {
+				RA_TRACE("invalid base64 string");
+				return -1;
+			}
+			(*(buf++)) = (a << 2) | (b >> 4); /* aaaaaabb */
+			(*(buf++)) = (b << 4) | (c >> 2); /* bbbbcccc */
+			(*(buf++)) = (c << 6) | (d     ); /* ccdddddd */
+		}
+	}
+	if (0 == r) {
 		if ((63 < (a = DECODE[(uint8_t)(*(s++))])) ||
 		    (63 < (b = DECODE[(uint8_t)(*(s++))])) ||
 		    (63 < (c = DECODE[(uint8_t)(*(s++))])) ||
 		    (63 < (d = DECODE[(uint8_t)(*(s++))]))) {
-			RA_TRACE("corrupted buffer");
+			RA_TRACE("invalid base64 string");
 			return -1;
 		}
 		(*(buf++)) = (a << 2) | (b >> 4); /* aaaaaabb */
 		(*(buf++)) = (b << 4) | (c >> 2); /* bbbbcccc */
 		(*(buf++)) = (c << 6) | (d     ); /* ccdddddd */
 	}
-	if (3 == r) {
-		(*len) += 2;
+	if (1 == r) {
 		if ((63 < (a = DECODE[(uint8_t)(*(s++))])) ||
 		    (63 < (b = DECODE[(uint8_t)(*(s++))])) ||
 		    (63 < (c = DECODE[(uint8_t)(*(s++))]))) {
-			RA_TRACE("corrupted buffer");
+			RA_TRACE("invalid base64 string");
 			return -1;
 		}
 		(*(buf++)) = (a << 2) | (b >> 4); /* aaaaaabb */
 		(*(buf++)) = (b << 4) | (c >> 2); /* bbbbcccc */
-	} else if (2 == r) {
-		(*len) += 1;
+	}
+	if (2 == r) {
 		if ((63 < (a = DECODE[(uint8_t)(*(s++))])) ||
 		    (63 < (b = DECODE[(uint8_t)(*(s++))]))) {
-			RA_TRACE("corrupted buffer");
+			RA_TRACE("invalid base64 string");
 			return -1;
 		}
 		(*(buf++)) = (a << 2) | (b >> 4); /* aaaaaabb */
-	} else if (1 == r) {
-		RA_TRACE("corrupted buffer");
-		return -1;
 	}
 	return 0;
 }
