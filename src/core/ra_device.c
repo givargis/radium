@@ -139,7 +139,7 @@ ra_device_read(ra_device_t device, void *buf, uint64_t off, uint64_t len)
 	assert( 0 == (len % device->block) );
 
 	if (len != (uint64_t)pread(device->fd, buf, (size_t)len, (off_t)off)) {
-		RA_TRACE("unable to read from device");
+		RA_TRACE("unable to read device");
 		return -1;
 	}
 	return 0;
@@ -160,7 +160,7 @@ ra_device_write(ra_device_t device,
 				    buf,
 				    (size_t)len,
 				    (off_t)off)) {
-		RA_TRACE("unable to write to device");
+		RA_TRACE("unable to write device");
 		return -1;
 	}
 	return 0;

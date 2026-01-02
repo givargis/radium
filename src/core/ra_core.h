@@ -12,6 +12,7 @@
 #include "ra_jitc.h"
 #include "ra_json.h"
 #include "ra_hash.h"
+#include "ra_mlp.h"
 #include "ra_network.h"
 #include "ra_sha3.h"
 #include "ra_thread.h"
