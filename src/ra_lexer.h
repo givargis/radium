@@ -7,9 +7,8 @@
 
 enum {
 	RA_LEXER_,
-	RA_LEXER_INT,
-	RA_LEXER_FLOAT,
 	RA_LEXER_STRING,
+	RA_LEXER_NUMERIC,
 	RA_LEXER_IDENTIFIER,
 	/*-*/
 	RA_LEXER_KEYWORD_,
@@ -97,11 +96,9 @@ enum {
 
 struct ra_lexer_token {
 	int op;
+	const char *s;
 	unsigned lineno;
 	unsigned column;
-	union {
-		const char *s;
-	} u;
 };
 
 typedef struct ra_lexer *ra_lexer_t;

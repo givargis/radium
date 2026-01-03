@@ -5,7 +5,9 @@
 #define PAD    8
 #define N_MAPS 160
 
-#define ERROR(l,m)				\
+#define TOKEN_LEN ( sizeof (struct ra_lexer_token) )
+
+#define ERROR(l, m)				\
 	do {					\
 		ra_printf(RA_COLOR_RED_BOLD,	\
 			  "error: ");		\
@@ -23,14 +25,11 @@ struct ra_lexer {
 	char *s;
 	unsigned lineno;
 	unsigned column;
+	ra_vector_t tokens;
 	struct map {
 		int op;
 		const char *s;
 	} maps[N_MAPS];
-	/*-*/
-	size_t size;
-	size_t capacity;
-	struct ra_lexer_token *tokens;
 };
 
 const char * const KEYWORDS[] = {
@@ -121,48 +120,35 @@ lookup(struct ra_lexer *lexer, const char *b, const char *e)
 	return 0;
 }
 
-static void
-unixclone(struct ra_lexer *lexer, const char *s)
-{
-	char *p;
-
-	p = lexer->s;
-	while (*s) {
-		if (('\r' == s[0]) && ('\n' == s[1])) {
-			(*(p++)) = '\n';
-			s += 2;
-		} else if ('\r' == (*s)) {
-			(*(p++)) = '\n';
-			s += 1;
-		} else {
-			(*(p++)) = (*(s++));
-		}
-	}
-	memset(p, 0, PAD);
-}
-
 static int
 process(struct ra_lexer *lexer, const char *b, const char *e)
 {
+	struct ra_lexer_token *token;
 	const char *s;
 	int op;
 
 	if (b < e) {
 		if ((op = lookup(lexer, b, e))) {
-			printf("KEYWORD: %d %u %u\n",
-			       op,
-			       lexer->lineno,
-			       lexer->column - (unsigned)(e - b));
-		} else if (is_identifier(b, e)) {
-			if (!(s = strdupl(b, e))) {
+			if (!(token = ra_vector_append(lexer->tokens,
+						       TOKEN_LEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
-			printf("IDENTIFIER: [%s] %u %u\n",
-			       s,
-			       lexer->lineno,
-			       lexer->column - (unsigned)strlen(s));
-			RA_FREE(s);
+			token->op = op;
+			token->lineno = lexer->lineno;
+			token->column = lexer->column - (unsigned)(e - b);
+		} else if (is_identifier(b, e)) {
+			if (!(s = strdupl(b, e)) ||
+			    !(token = ra_vector_append(lexer->tokens,
+						       TOKEN_LEN))) {
+				RA_FREE(s);
+				RA_TRACE("^");
+				return -1;
+			}
+			token->op = RA_LEXER_IDENTIFIER;
+			token->s = s;
+			token->lineno = lexer->lineno;
+			token->column = lexer->column - (unsigned)strlen(s);
 		} else {
 			ERROR(lexer, "invalid identifier");
 			return -1;
@@ -174,6 +160,7 @@ process(struct ra_lexer *lexer, const char *b, const char *e)
 static char *
 process_string(struct ra_lexer *lexer, const char *b)
 {
+	struct ra_lexer_token *token;
 	const char *s, *e;
 
 	e = b;
@@ -183,15 +170,17 @@ process_string(struct ra_lexer *lexer, const char *b)
 		if ((*b) == (*e)) {
 			lexer->column += 1;
 			++e;
-			if (!(s = strdupl(b, e))) {
+			if (!(s = strdupl(b, e)) ||
+			    !(token = ra_vector_append(lexer->tokens,
+						       TOKEN_LEN))) {
+				RA_FREE(s);
 				RA_TRACE("^");
 				return NULL;
 			}
-			printf("STRING: [%s] %u %u\n",
-			       s,
-			       lexer->lineno,
-			       lexer->column - (unsigned)strlen(s));
-			RA_FREE(s);
+			token->op = RA_LEXER_STRING;
+			token->s = s;
+			token->lineno = lexer->lineno;
+			token->column = lexer->column - (unsigned)strlen(s);
 			return (char *)e;
 		}
 		if ('\\' == (*e)) {
@@ -210,6 +199,7 @@ process_string(struct ra_lexer *lexer, const char *b)
 static char *
 process_numeric(struct ra_lexer *lexer, const char *b)
 {
+	struct ra_lexer_token *token;
 	const char *s, *e;
 
 	e = b;
@@ -217,21 +207,23 @@ process_numeric(struct ra_lexer *lexer, const char *b)
 		++e;
 		++lexer->column;
 	}
-	if (!(s = strdupl(b, e))) {
+	if (!(s = strdupl(b, e)) ||
+	    !(token = ra_vector_append(lexer->tokens, TOKEN_LEN))) {
+		RA_FREE(s);
 		RA_TRACE("^");
 		return NULL;
 	}
-	printf("NUMERIC: [%s] %u %u\n",
-	       s,
-	       lexer->lineno,
-	       lexer->column - (unsigned)strlen(s));
-	RA_FREE(s);
+	token->op = RA_LEXER_NUMERIC;
+	token->s = s;
+	token->lineno = lexer->lineno;
+	token->column = lexer->column - (unsigned)strlen(s);
 	return (char *)e;
 }
 
 static int
 tokenize(struct ra_lexer *lexer)
 {
+	struct ra_lexer_token *token;
 	char *e, *b;
 	int op;
 
@@ -273,40 +265,43 @@ tokenize(struct ra_lexer *lexer)
 			b = e;
 		} else if ((op = lookup(lexer, e, e + 3)) &&
 			   (RA_LEXER_OPERATOR_ < op)) {
-			if (process(lexer, b, e)) {
+			if (process(lexer, b, e) ||
+			    !(token = ra_vector_append(lexer->tokens,
+						       TOKEN_LEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
-			printf("OPERATOR: %d %u %u\n",
-			       op,
-			       lexer->lineno,
-			       lexer->column);
+			token->op = op;
+			token->lineno = lexer->lineno;
+			token->column = lexer->column;
 			lexer->column += 3;
 			e += 3;
 			b = e;
 		} else if ((op = lookup(lexer, e, e + 2)) &&
 			   (RA_LEXER_OPERATOR_ < op)) {
-			if (process(lexer, b, e)) {
+			if (process(lexer, b, e) ||
+			    !(token = ra_vector_append(lexer->tokens,
+						       TOKEN_LEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
-			printf("OPERATOR: %d %u %u\n",
-			       op,
-			       lexer->lineno,
-			       lexer->column);
+			token->op = op;
+			token->lineno = lexer->lineno;
+			token->column = lexer->column;
 			lexer->column += 2;
 			e += 2;
 			b = e;
 		} else if ((op = lookup(lexer, e, e + 1)) &&
 			   (RA_LEXER_OPERATOR_ < op)) {
-			if (process(lexer, b, e)) {
+			if (process(lexer, b, e) ||
+			    !(token = ra_vector_append(lexer->tokens,
+						       TOKEN_LEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
-			printf("OPERATOR: %d %u %u\n",
-			       op,
-			       lexer->lineno,
-			       lexer->column);
+			token->op = op;
+			token->lineno = lexer->lineno;
+			token->column = lexer->column;
 			lexer->column += 1;
 			e += 1;
 			b = e;
@@ -343,18 +338,24 @@ ra_lexer_open(const char *s)
 		return NULL;
 	}
 	memset(lexer, 0, sizeof (struct ra_lexer));
-	if (!(lexer->s = malloc(strlen(s) + PAD))) {
-		ra_lexer_close(lexer);
-		RA_TRACE("out of memory");
-		return NULL;
-	}
 	for (i=0; i<RA_ARRAY_SIZE(KEYWORDS); ++i) {
 		populate(lexer, KEYWORDS[i], RA_LEXER_KEYWORD_ + (int)(i+1));
 	}
 	for (i=0; i<RA_ARRAY_SIZE(OPERATORS); ++i) {
 		populate(lexer, OPERATORS[i], RA_LEXER_OPERATOR_ + (int)(i+1));
 	}
-	unixclone(lexer, s);
+	if (!(lexer->tokens = ra_vector_open())) {
+		ra_lexer_close(lexer);
+		RA_TRACE("^");
+		return NULL;
+	}
+	if (!(lexer->s = malloc(strlen(s) + PAD))) {
+		ra_lexer_close(lexer);
+		RA_TRACE("out of memory");
+		return NULL;
+	}
+	memcpy(lexer->s, s, strlen(s));
+	memset(lexer->s + strlen(s), 0, PAD);
 	if (tokenize(lexer)) {
 		ra_lexer_close(lexer);
 		RA_TRACE("^");
@@ -366,7 +367,17 @@ ra_lexer_open(const char *s)
 void
 ra_lexer_close(ra_lexer_t lexer)
 {
+	struct ra_lexer_token *token;
+	uint64_t i;
+
 	if (lexer) {
+		if (lexer->tokens) {
+			for (i=0; i<ra_vector_items(lexer->tokens); ++i) {
+				token = ra_vector_lookup(lexer->tokens, i);
+				RA_FREE(token->s);
+			}
+			ra_vector_close(lexer->tokens);
+		}
 		RA_FREE(lexer->s);
 		memset(lexer, 0, sizeof (struct ra_lexer));
 		RA_FREE(lexer);
