@@ -1,8 +1,8 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
-#include "ra_avl.h"
+#include "ra_map.h"
 
-struct ra_avl {
+struct ra_map {
 	uint64_t items;
 	struct node {
 		int depth;
@@ -84,7 +84,7 @@ destroy(struct node *root)
 }
 
 static struct node *
-update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
+update(struct ra_map *map, struct node *root, const char *key, const void *val)
 {
 	struct node *node;
 	int d;
@@ -101,7 +101,7 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 			return NULL;
 		}
 		root->val = val;
-		++avl->items;
+		++map->items;
 		return root;
 	}
 	if (!(d = strcmp(key, root->key))) {
@@ -109,7 +109,7 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 		return root;
 	}
 	if (0 > d) {
-		if (!(node = update(avl, root->left, key, val))) {
+		if (!(node = update(map, root->left, key, val))) {
 			RA_TRACE("^");
 			return NULL;
 		}
@@ -122,7 +122,7 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 			}
 		}
 	} else {
-		if (!(node = update(avl, root->right, key, val))) {
+		if (!(node = update(map, root->right, key, val))) {
 			RA_TRACE("^");
 			return NULL;
 		}
@@ -140,7 +140,7 @@ update(struct ra_avl *avl, struct node *root, const char *key, const void *val)
 }
 
 static int
-iterate(struct node *root, ra_avl_fnc_t fnc, void *ctx)
+iterate(struct node *root, ra_map_fnc_t fnc, void *ctx)
 {
 	int e;
 
@@ -154,62 +154,62 @@ iterate(struct node *root, ra_avl_fnc_t fnc, void *ctx)
 	return 0;
 }
 
-ra_avl_t
-ra_avl_open(void)
+ra_map_t
+ra_map_open(void)
 {
-	struct ra_avl *avl;
+	struct ra_map *map;
 
-	if (!(avl = malloc(sizeof (struct ra_avl)))) {
+	if (!(map = malloc(sizeof (struct ra_map)))) {
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	memset(avl, 0, sizeof (struct ra_avl));
-	return avl;
+	memset(map, 0, sizeof (struct ra_map));
+	return map;
 }
 
 void
-ra_avl_close(ra_avl_t avl)
+ra_map_close(ra_map_t map)
 {
-	if (avl) {
-		destroy(avl->root);
-		memset(avl, 0, sizeof (struct ra_avl));
-		RA_FREE(avl);
+	if (map) {
+		destroy(map->root);
+		memset(map, 0, sizeof (struct ra_map));
+		RA_FREE(map);
 	}
 }
 
 void
-ra_avl_empty(ra_avl_t avl)
+ra_map_empty(ra_map_t map)
 {
-	if (avl) {
-		destroy(avl->root);
-		memset(avl, 0, sizeof (struct ra_avl));
+	if (map) {
+		destroy(map->root);
+		memset(map, 0, sizeof (struct ra_map));
 	}
 }
 
 int
-ra_avl_update(ra_avl_t avl, const char *key, const void *val)
+ra_map_update(ra_map_t map, const char *key, const void *val)
 {
 	struct node *root;
 
-	assert( avl && key && strlen(key) );
+	assert( map && key && strlen(key) );
 
-	if (!(root = update(avl, avl->root, key, val))) {
+	if (!(root = update(map, map->root, key, val))) {
 		RA_TRACE("^");
 		return -1;
 	}
-	avl->root = root;
+	map->root = root;
 	return 0;
 }
 
 void *
-ra_avl_lookup(ra_avl_t avl, const char *key)
+ra_map_lookup(ra_map_t map, const char *key)
 {
 	const struct node *node;
 	int d;
 
-	assert( avl && key && strlen(key) );
+	assert( map && key && strlen(key) );
 
-	node = avl->root;
+	node = map->root;
 	while (node) {
 		if (!(d = strcmp(key, node->key))) {
 			return (void *)node->val;
@@ -220,22 +220,22 @@ ra_avl_lookup(ra_avl_t avl, const char *key)
 }
 
 int
-ra_avl_iterate(ra_avl_t avl, ra_avl_fnc_t fnc, void *ctx)
+ra_map_iterate(ra_map_t map, ra_map_fnc_t fnc, void *ctx)
 {
 	int e;
 
-	assert( avl && fnc );
+	assert( map && fnc );
 
-	if ((e = iterate(avl->root, fnc, ctx))) {
+	if ((e = iterate(map->root, fnc, ctx))) {
 		return e;
 	}
 	return 0;
 }
 
 uint64_t
-ra_avl_items(ra_avl_t avl)
+ra_map_items(ra_map_t map)
 {
-	assert( avl );
+	assert( map );
 
-	return avl->items;
+	return map->items;
 }

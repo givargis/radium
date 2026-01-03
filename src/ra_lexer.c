@@ -3,7 +3,7 @@
 #include "ra_lexer.h"
 
 #define PAD    8
-#define N_MAPS 160 /* ~ 2 x items */
+#define N_MAPS 160
 
 #define ERROR(l,m)				\
 	do {					\
@@ -27,6 +27,10 @@ struct ra_lexer {
 		int op;
 		const char *s;
 	} maps[N_MAPS];
+	/*-*/
+	size_t size;
+	size_t capacity;
+	struct ra_lexer_token *tokens;
 };
 
 const char * const KEYWORDS[] = {
@@ -236,16 +240,26 @@ tokenize(struct ra_lexer *lexer)
 	lexer->lineno = 1;
 	lexer->column = 1;
 	while (*e) {
-		if ('\n' == (*e)) {
-			lexer->lineno += 1;
-			lexer->column  = 1;
-		} else if (isspace((unsigned char)(*e))) {
+		if (isspace((unsigned char)(*e))) {
 			if (process(lexer, b, e)) {
 				RA_TRACE("^");
 				return -1;
 			}
-			lexer->column += 1;
-			++e;
+			if ('\n' == (*e)) {
+				lexer->lineno += 1;
+				lexer->column  = 1;
+			} else {
+				lexer->column += 1;
+			}
+			b = ++e;
+		} else if (('/' == e[0]) && ('/' == e[1])) {
+			if (process(lexer, b, e)) {
+				RA_TRACE("^");
+				return -1;
+			}
+			while ((*e) && ('\n' != (*e))) {
+				++e;
+			}
 			b = e;
 		} else if (('"' == (*e)) || ('\'' == (*e))) {
 			if (process(lexer, b, e)) {
