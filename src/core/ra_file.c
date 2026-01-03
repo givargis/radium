@@ -6,7 +6,6 @@
 void *
 ra_file_read(const char *pathname, size_t *len_)
 {
-	const size_t PAD = 8;
 	struct stat st;
 	FILE *file;
 	size_t len;
@@ -30,13 +29,13 @@ ra_file_read(const char *pathname, size_t *len_)
 		RA_TRACE("not a regular file");
 		return NULL;
 	}
-	if ((0 > st.st_size) || ((SIZE_MAX - PAD) < (size_t)st.st_size)) {
+	if ((0 > st.st_size) || ((SIZE_MAX - 1) < (size_t)st.st_size)) {
 		fclose(file);
 		RA_TRACE("file too large");
 		return NULL;
 	}
 	len = (size_t)st.st_size;
-	if (!(buf = malloc(len + PAD))) {
+	if (!(buf = malloc(len + 1))) {
 		fclose(file);
 		RA_TRACE("out of memory");
 		return NULL;
@@ -48,7 +47,7 @@ ra_file_read(const char *pathname, size_t *len_)
 		return NULL;
 	}
 	fclose(file);
-	memset(buf + len, 0, PAD);
+	(*buf) = '\0';
 	(*len_) = (size_t)len;
 	return buf;
 }

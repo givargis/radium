@@ -35,8 +35,8 @@ struct ra_json {
 	int stop;
 	char *curr;
 	char *content;
-	unsigned int lineno;
-	unsigned int column;
+	unsigned lineno;
+	unsigned column;
 	struct ra_json_node *root;
 	struct {
 		enum {
