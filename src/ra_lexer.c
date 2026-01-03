@@ -79,7 +79,8 @@ is_identifier(const char *b, const char *e)
 static void
 populate(struct ra_lexer *lexer, const char *s, int op)
 {
-	uint64_t i, j, h;
+	uint64_t h, j;
+	int i;
 
 	h = ra_hash(s, strlen(s));
 	for (i=0; i<N_MAPS; ++i) {
@@ -95,10 +96,11 @@ populate(struct ra_lexer *lexer, const char *s, int op)
 }
 
 static int
-lookup(ra_lexer_t lexer, const char *b, const char *e)
+lookup(struct ra_lexer *lexer, const char *b, const char *e)
 {
-	uint64_t i, j, h;
+	uint64_t h, j;
 	size_t n;
+	int i;
 
 	n = e - b;
 	h = ra_hash(b, n);
@@ -191,9 +193,11 @@ process_string(struct ra_lexer *lexer, const char *b)
 		if ('\\' == (*e)) {
 			lexer->column += 1;
 			++e;
+			if (!(*e)) {
+				ERROR(lexer, "missing escape character");
+				return NULL;
+			}
 		}
-		lexer->column += 1;
-		++e;
 	}
 	ERROR(lexer, "missing terminating character");
 	return NULL;
@@ -243,16 +247,12 @@ tokenize(struct ra_lexer *lexer)
 			lexer->column += 1;
 			++e;
 			b = e;
-		} else if ((b == e) && (('"' == (*e)) || ('\'' == (*e)))) {
-			if (!(e = process_string(lexer, e))) {
+		} else if (('"' == (*e)) || ('\'' == (*e))) {
+			if (process(lexer, b, e)) {
 				RA_TRACE("^");
 				return -1;
 			}
-			b = e;
-		} else if ((b == e) &&
-			   (isdigit((unsigned char)(*e)) ||
-			    (('.' == e[0]) && isdigit((unsigned char)e[1])))) {
-			if (!(e = process_numeric(lexer, e))) {
+			if (!(e = process_string(lexer, e))) {
 				RA_TRACE("^");
 				return -1;
 			}
@@ -295,6 +295,14 @@ tokenize(struct ra_lexer *lexer)
 			       lexer->column);
 			lexer->column += 1;
 			e += 1;
+			b = e;
+		} else if ((b == e) &&
+			   (isdigit((unsigned char)(*e)) ||
+			    (('.' == e[0]) && isdigit((unsigned char)e[1])))) {
+			if (!(e = process_numeric(lexer, e))) {
+				RA_TRACE("^");
+				return -1;
+			}
 			b = e;
 		} else {
 			lexer->column += 1;

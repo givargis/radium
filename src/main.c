@@ -11,7 +11,7 @@ main(void)
 
 	ra_core_init();
 
-	lexer = ra_lexer_open("1.+int->\"blah\"");
+	lexer = ra_lexer_open("int x @ = 5;");
 
 	ra_lexer_close(lexer);
 	return 0;
