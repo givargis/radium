@@ -18,6 +18,7 @@
 #include "ra_network.h"
 #include "ra_sha3.h"
 #include "ra_thread.h"
+#include "ra_vector.h"
 
 void ra_core_init(void);
 
