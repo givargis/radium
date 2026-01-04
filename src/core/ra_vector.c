@@ -47,8 +47,7 @@ ra_vector_append(ra_vector_t vector, size_t n)
 	assert( vector && (0 < n) );
 
 	if (vector->items >= vector->size) {
-		size = vector->size * 3 / 2;
-		size = size ? size : 100;
+		size = vector->size + 100;
 		m = size * sizeof (vector->memory[0]);
 		if (!(memory = realloc(vector->memory, m))) {
 			RA_TRACE("out of memory");

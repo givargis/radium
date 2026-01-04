@@ -3,7 +3,7 @@
 #include "ra_lexer.h"
 
 #define PAD    8
-#define N_MAPS 160
+#define N_MAPS 199
 
 #define TOKEN_LEN ( sizeof (struct ra_lexer_token) )
 
@@ -143,6 +143,7 @@ process(struct ra_lexer *lexer, const char *b, const char *e)
 				return -1;
 			}
 			token->op = op;
+			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column - (unsigned)(e - b);
 		} else if (is_identifier(b, e)) {
@@ -156,9 +157,9 @@ process(struct ra_lexer *lexer, const char *b, const char *e)
 			token->op = RA_LEXER_IDENTIFIER;
 			token->s = s;
 			token->lineno = lexer->lineno;
-			token->column = lexer->column - (unsigned)strlen(s);
+			token->column = lexer->column - (unsigned)(e - b);
 		} else {
-			ERROR(lexer, "invalid identifier");
+			ERROR(lexer, "invalid token");
 			return -1;
 		}
 	}
@@ -170,12 +171,14 @@ process_string(struct ra_lexer *lexer, const char *b)
 {
 	struct ra_lexer_token *token;
 	const char *s, *e;
+	char quote;
 
 	e = b;
+	quote = (*b);
 	while ((*e) && ('\n' != (*e))) {
 		lexer->column += 1;
 		++e;
-		if ((*b) == (*e)) {
+		if (quote == (*e)) {
 			lexer->column += 1;
 			++e;
 			if (!(s = strdupl(b, e)) ||
@@ -188,7 +191,7 @@ process_string(struct ra_lexer *lexer, const char *b)
 			token->op = RA_LEXER_STRING;
 			token->s = s;
 			token->lineno = lexer->lineno;
-			token->column = lexer->column - (unsigned)strlen(s);
+			token->column = lexer->column - (unsigned)(e - b);
 			return (char *)e;
 		}
 		if ('\\' == (*e)) {
@@ -224,7 +227,7 @@ process_numeric(struct ra_lexer *lexer, const char *b)
 	token->op = RA_LEXER_NUMERIC;
 	token->s = s;
 	token->lineno = lexer->lineno;
-	token->column = lexer->column - (unsigned)strlen(s);
+	token->column = lexer->column - (unsigned)(e - b);
 	return (char *)e;
 }
 
@@ -280,6 +283,7 @@ tokenize(struct ra_lexer *lexer)
 				return -1;
 			}
 			token->op = op;
+			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column;
 			lexer->column += 3;
@@ -294,6 +298,7 @@ tokenize(struct ra_lexer *lexer)
 				return -1;
 			}
 			token->op = op;
+			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column;
 			lexer->column += 2;
@@ -308,6 +313,7 @@ tokenize(struct ra_lexer *lexer)
 				return -1;
 			}
 			token->op = op;
+			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column;
 			lexer->column += 1;

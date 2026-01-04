@@ -47,7 +47,7 @@ ra_file_read(const char *pathname, size_t *len_)
 		return NULL;
 	}
 	fclose(file);
-	(*buf) = '\0';
+	buf[len] = '\0';
 	(*len_) = (size_t)len;
 	return buf;
 }
