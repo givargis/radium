@@ -107,6 +107,8 @@ ra_lexer_t ra_lexer_open(const char *s);
 
 void ra_lexer_close(ra_lexer_t lexer);
 
-int ra_lexer_lookup(ra_lexer_t lexer, const char *b, const char *e);
+const struct ra_lexer_token *ra_lexer_lookup(ra_lexer_t lexer, uint64_t i);
+
+uint64_t ra_lexer_items(ra_lexer_t lexer);
 
 #endif /* __RA_LEXER_H__ */

@@ -36,7 +36,7 @@ ra_base64_encode(const void *buf_, size_t len, char *s)
 	uint8_t a, b, c;
 	size_t i, q, r;
 
-	if (!buf || !len || !s || !*s) {
+	if (!buf || !len || !s || !(*s)) {
 		RA_TRACE("invalid arguments");
 		return -1;
 	}
@@ -76,7 +76,7 @@ ra_base64_decode(void *buf_, size_t *len, const char *s)
 	uint8_t a, b, c, d;
 	size_t i, n, q, r;
 
-	if (!buf || !len || !s || !*s) {
+	if (!buf || !len || !s || !(*s)) {
 		RA_TRACE("invalid arguments");
 		return -1;
 	}

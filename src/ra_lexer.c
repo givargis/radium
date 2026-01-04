@@ -55,6 +55,8 @@ strdupl(const char *b, const char *e)
 	size_t n;
 	char *s;
 
+	assert( b && (b < e) );
+
 	n = e - b;
 	if (!(s = malloc(n + 1))) {
 		RA_TRACE("out of memory");
@@ -68,6 +70,8 @@ strdupl(const char *b, const char *e)
 static int
 is_identifier(const char *b, const char *e)
 {
+	assert( b && (b < e) );
+
 	if (('_' == (*b)) || isalpha((unsigned char)(*b))) {
 		while (++b < e) {
 			if (('_' != (*b)) && !isalnum((unsigned char)(*b))) {
@@ -84,6 +88,8 @@ populate(struct ra_lexer *lexer, const char *s, int op)
 {
 	uint64_t h, j;
 	int i;
+
+	assert( s && strlen(s) );
 
 	h = ra_hash(s, strlen(s));
 	for (i=0; i<N_MAPS; ++i) {
@@ -104,6 +110,8 @@ lookup(struct ra_lexer *lexer, const char *b, const char *e)
 	uint64_t h, j;
 	size_t n;
 	int i;
+
+	assert( b && (b < e) );
 
 	n = e - b;
 	h = ra_hash(b, n);
@@ -382,4 +390,20 @@ ra_lexer_close(ra_lexer_t lexer)
 		memset(lexer, 0, sizeof (struct ra_lexer));
 		RA_FREE(lexer);
 	}
+}
+
+const struct ra_lexer_token *
+ra_lexer_lookup(ra_lexer_t lexer, uint64_t i)
+{
+	assert( lexer );
+
+	return ra_vector_lookup(lexer->tokens, i);
+}
+
+uint64_t
+ra_lexer_items(ra_lexer_t lexer)
+{
+	assert( lexer );
+
+	return ra_vector_items(lexer->tokens);
 }
