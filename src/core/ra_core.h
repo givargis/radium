@@ -5,6 +5,7 @@
 
 #include "ra_map.h"
 #include "ra_base64.h"
+#include "ra_bigint.h"
 #include "ra_bitset.h"
 #include "ra_device.h"
 #include "ra_ec.h"

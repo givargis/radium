@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <limits.h>
 #include <assert.h>
 
 #define RA_ENDIAN_BIG    0
