@@ -110,9 +110,11 @@ eat_string(char *s)
 	while (*++s) {
 		if ('\"' == (*s)) {
 			return s;
-		} else if (0x20 > (*s)) {
+		}
+		else if (0x20 > (*s)) {
 			return NULL;
-		} else if ('\\' == (*s)) {
+		}
+		else if ('\\' == (*s)) {
 			++s;
 			if (('"' == (*s)) ||
 			    ('/' == (*s)) ||
@@ -123,14 +125,16 @@ eat_string(char *s)
 			    ('t' == (*s)) ||
 			    ('\\' == (*s))) {
 				continue;
-			} else if ('u' == (*s)) {
+			}
+			else if ('u' == (*s)) {
 				for (i=0; i<4; ++i) {
 					if (!ishex(*++s)) {
 						return NULL;
 					}
 				}
 				continue;
-			} else {
+			}
+			else {
 				return NULL;
 			}
 		}
@@ -277,24 +281,29 @@ jvalue(struct ra_json *json)
 	if (match(json, OP_NULL)) {
 		MKN(json, node, RA_JSON_NODE_OP_NULL);
 		forward(json);
-	} else if (match(json, OP_BOOL)) {
+	}
+	else if (match(json, OP_BOOL)) {
 		MKN(json, node, RA_JSON_NODE_OP_BOOL);
 		node->u.bool_ = json->token.u.bool_;
 		forward(json);
-	} else if (match(json, OP_NUMBER)) {
+	}
+	else if (match(json, OP_NUMBER)) {
 		MKN(json, node, RA_JSON_NODE_OP_NUMBER);
 		node->u.number = json->token.u.number;
 		forward(json);
-	} else if (match(json, OP_STRING)) {
+	}
+	else if (match(json, OP_STRING)) {
 		MKN(json, node, RA_JSON_NODE_OP_STRING);
 		node->u.string = json->token.u.string;
 		forward(json);
-	} else if (match(json, OP_OPEN_BRACKET)) {
+	}
+	else if (match(json, OP_OPEN_BRACKET)) {
 		if (!(node = jarray(json))) {
 			ERROR(json, "erroneous array");
 			return NULL;
 		}
-	} else if (match(json, OP_OPEN_BRACE)) {
+	}
+	else if (match(json, OP_OPEN_BRACE)) {
 		if (!(node = jobject(json))) {
 			ERROR(json, "erroneous object");
 			return NULL;
@@ -406,7 +415,8 @@ jtop(struct ra_json *json)
 			ERROR(json, "erroneous array");
 			return NULL;
 		}
-	} else if (match(json, OP_OPEN_BRACE)) {
+	}
+	else if (match(json, OP_OPEN_BRACE)) {
 		if (!(node = jobject(json))) {
 			ERROR(json, "erroneous object");
 			return NULL;

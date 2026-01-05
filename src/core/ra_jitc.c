@@ -38,12 +38,14 @@ ra_jitc_compile(const char *input, const char *output)
 	if (0 > (pid = fork())) {
 		RA_TRACE("unable to fork child process");
 		return -1;
-	} else if (!pid) {
+	}
+	else if (!pid) {
 		execv(argv[0], (char * const *)argv);
 		RA_TRACE("unable to execute child process (abort)");
 		abort();
 		return -1;
-	} else {
+	}
+	else {
 		for (;;) {
 			pid_ = waitpid(pid, &status, 0);
 			if ((-1 == pid_) && (EINTR == errno)) {

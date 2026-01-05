@@ -117,11 +117,13 @@ update(struct ra_map *map, struct node *root, const char *key, const void *val)
 		if (1 < balance(root)) {
 			if (0 <= balance(root->left)) {
 				root = rotate_right(root);
-			} else {
+			}
+			else {
 				root = rotate_left_right(root);
 			}
 		}
-	} else {
+	}
+	else {
 		if (!(node = update(map, root->right, key, val))) {
 			RA_TRACE("^");
 			return NULL;
@@ -130,7 +132,8 @@ update(struct ra_map *map, struct node *root, const char *key, const void *val)
 		if (-1 > balance(root)) {
 			if (0 >= balance(root->right)) {
 				root = rotate_left(root);
-			} else {
+			}
+			else {
 				root = rotate_right_left(root);
 			}
 		}

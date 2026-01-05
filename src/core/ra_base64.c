@@ -58,7 +58,8 @@ ra_base64_encode(const void *buf_, size_t len, char *s)
 		(*(s++)) = ENCODE[((a << 4) & 0x3f) | (b >> 4)]; /* 00aabbbb */
 		(*(s++)) = ENCODE[((b << 2) & 0x3f) | (0     )]; /* 00bbbb00 */
 		(*(s++)) = '=';
-	} else if (1 == r) {
+	}
+	else if (1 == r) {
 		a = (*(buf++));
 		(*(s++)) = ENCODE[((0     )       ) | (a >> 2)]; /* 00aaaaaa */
 		(*(s++)) = ENCODE[((a << 4) & 0x3f) | (0     )]; /* 00aa0000 */

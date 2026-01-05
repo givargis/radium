@@ -23,7 +23,8 @@ mul(uint8_t a, uint8_t b)
 		}
 		if (a & 0x80) {
 			a = (a << 1) ^ 0x11d;
-		} else {
+		}
+		else {
 			a <<= 1;
 		}
 		b >>= 1;
