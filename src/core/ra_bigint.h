@@ -7,7 +7,7 @@
 
 typedef struct ra_bigint *ra_bigint_t;
 
-extern const ra_bigint_t RA_BIGINT_CONST[17];
+extern const ra_bigint_t RA_BIGINT_CONST[17]; /* 0 - 16 */
 
 void ra_bigint_free(ra_bigint_t z);
 
