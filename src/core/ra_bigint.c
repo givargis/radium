@@ -1,11 +1,10 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
-#include "ra_kernel.h"
 #include "ra_bigint.h"
 
 #define MAX_PARTS 16384
 
-#define IS_ONE(a)      ( (1 == a->width) && (1 == a->parts[0]) )
+#define IS_ONE(a)      ( (1 == (a)->width) && (1 == (a)->parts[0]) )
 #define IS_ZERO(a)     ( (a)->width ? 0 : 1 )
 #define IS_NEGATIVE(a) ( (a)->sign )
 
@@ -40,8 +39,8 @@ destroy(struct ra_bigint *z)
 	if (z) {
 		RA_FREE(z->parts);
 		memset(z, 0, sizeof (struct ra_bigint));
+		RA_FREE(z);
 	}
-	RA_FREE(z);
 }
 
 static struct ra_bigint *
@@ -138,13 +137,9 @@ uadd(const struct ra_bigint *a, const struct ra_bigint *b)
 		uint64_t a_ = (i < a->width) ? a->parts[i] : 0;
 		uint64_t b_ = (i < b->width) ? b->parts[i] : 0;
 		uint64_t z_;
-		int c_;
-		z_  = a_ + b_;
-		c_  = (z_ < a_);
-		z_ += c;
-		c_ += (z_ < (uint64_t)c);
+		z_  = a_ + b_ + c;
+		c = (z_ < a_) || (z_ < b_) || (c && (z_ == (a_ + b_)));
 		z->parts[i] = z_;
-		c = c_;
 	}
 	normalize(z);
 	return z;
@@ -165,13 +160,9 @@ usub(const struct ra_bigint *a, const struct ra_bigint *b)
 		uint64_t a_ = a->parts[i];
 		uint64_t b_ = (i < b->width) ? b->parts[i] : 0;
 		uint64_t z_;
-		int c_;
-		z_  = a_ - b_;
-		c_  = (a_ < b_);
-		z_ -= c;
-		c_ |= (z_ > a_);
+		z_ = a_ - b_ - c;
+		c = (a_ < (b_ + c));
 		z->parts[i] = z_;
-		c = c_;
 	}
 	normalize(z);
 	return z;
@@ -248,7 +239,7 @@ mul128(uint64_t *h, uint64_t *l, uint64_t a, uint64_t b)
 	t2 += t1 >> 32;
 	t3 += t2;
 	if (t3 < t2) {
-		t4 += 1LLU << 32;
+		t4 += 1LU << 32;
 	}
 	t4 += t3 >> 32;
 	(*h) = t4;
@@ -572,7 +563,7 @@ convert_string(const char *s)
 static const char *
 print(const struct ra_bigint *a)
 {
-	static uint64_t M_[] = { 1000000000000000000LU };
+	static const uint64_t M_[] = { 1000000000000000000LU };
 	const struct ra_bigint M = { 0, 1, (uint64_t *)M_ };
 	struct ra_bigint *q, *r, *q_;
 	uint64_t *stack;
@@ -623,74 +614,6 @@ print(const struct ra_bigint *a)
 	}
 	RA_FREE(stack);
 	return buf;
-}
-
-static int
-is_square(const struct ra_bigint *a)
-{
-	struct ra_bigint *t, *l, *h, *m;
-	int d;
-
-	if (IS_NEGATIVE(a)) {
-		return 0;
-	}
-	if (IS_ZERO(a)) {
-		return 1;
-	}
-	if (!(l = clone(RA_BIGINT_CONST[1])) ||
-	    !(h = ra_bigint_div((ra_bigint_t)a, RA_BIGINT_CONST[2]))) {
-		destroy(l);
-		RA_TRACE("^");
-		return -1;
-	}
-	while (0 >= cmp(l, h)) {
-		if (!(t = add(l, h)) ||
-		    !(m = ra_bigint_div(t, RA_BIGINT_CONST[2]))) {
-			destroy(t);
-			destroy(l);
-			destroy(h);
-			RA_TRACE("^");
-			return -1;
-		}
-		destroy(t);
-		if (!(t = mul(m, m))) {
-			destroy(m);
-			destroy(l);
-			destroy(h);
-			RA_TRACE("^");
-			return -1;
-		}
-		d = cmp(t, a);
-		destroy(t);
-		if (!d) {
-			destroy(l);
-			destroy(h);
-			destroy(m);
-			return 1;
-		}
-		else if (0 > d) {
-			destroy(l);
-			if (!(l = add(m, RA_BIGINT_CONST[1]))) {
-				destroy(m);
-				destroy(h);
-				RA_TRACE("^");
-				return -1;
-			}
-		}
-		else {
-			destroy(h);
-			if (!(h = sub(m, RA_BIGINT_CONST[1]))) {
-				destroy(m);
-				destroy(l);
-				RA_TRACE("^");
-				return -1;
-			}
-		}
-		destroy(m);
-	}
-	destroy(h);
-	destroy(l);
-	return 0;
 }
 
 void
@@ -803,12 +726,6 @@ int
 ra_bigint_is_one(ra_bigint_t a)
 {
 	return IS_ONE(a);
-}
-
-int
-ra_bigint_is_square(ra_bigint_t a)
-{
-	return is_square(a);
 }
 
 int

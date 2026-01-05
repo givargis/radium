@@ -3,7 +3,7 @@
 #ifndef __RA_BIGINT_H__
 #define __RA_BIGINT_H__
 
-#include <stdint.h>
+#include "ra_kernel.h"
 
 typedef struct ra_bigint *ra_bigint_t;
 
@@ -43,8 +43,6 @@ int ra_bigint_digits(ra_bigint_t a);
 int ra_bigint_is_zero(ra_bigint_t a);
 
 int ra_bigint_is_one(ra_bigint_t a);
-
-int ra_bigint_is_square(ra_bigint_t a);
 
 int ra_bigint_is_negative(ra_bigint_t a);
 
