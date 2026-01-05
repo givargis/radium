@@ -3,6 +3,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "ra_hash.h"
 #include "ra_kernel.h"
 
 void
@@ -72,9 +73,39 @@ ra_sprintf(char *buf, size_t len, const char *format, ...)
 	rv = vsnprintf(buf, len, format, ap);
 	va_end(ap);
 	if ((0 > rv) || (len <= (size_t)rv)) {
-		RA_TRACE("software bug detected (abort)");
+		RA_TRACE("integrity failure detected (abort)");
 		abort();
 	}
+}
+
+const char *
+ra_pathname(const char *ext)
+{
+	const char *path;
+	uint64_t tm;
+	size_t len;
+	char *buf;
+
+	if (!(path = getenv("TMPDIR")) &&
+	    !(path = getenv("TEMP")) &&
+	    !(path = getenv("TMP"))) {
+		path = "";
+	}
+	tm = ra_time();
+	ext = ext ? ext : "";
+	len = strlen(path) + strlen(ext) + 32;
+	if (!(buf = malloc(len))) {
+		RA_TRACE("out of memory");
+		return NULL;
+	}
+	ra_sprintf(buf,
+		   len,
+		   "%s%s%lx%s",
+		   path,
+		   strlen(path) ? "/" : "",
+		   (unsigned long)ra_hash(&tm, sizeof (tm)),
+		   ext ? ext : "~");
+	return buf;
 }
 
 uint64_t

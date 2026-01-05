@@ -12,4 +12,6 @@ int ra_base64_encode(const void *buf, size_t len, char *s);
 
 int ra_base64_decode(void *buf, size_t *len, const char *s);
 
+int ra_base64_test(void);
+
 #endif /* __RA_BASE64_H__ */

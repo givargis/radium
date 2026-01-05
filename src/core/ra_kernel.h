@@ -75,6 +75,8 @@ void ra_printf(ra_color_t color, const char *format, ...);
 
 void ra_sprintf(char *buf, size_t len, const char *format, ...);
 
+const char *ra_pathname(const char *ext); /* caller free */
+
 uint64_t ra_time(void);
 
 size_t ra_page(void);

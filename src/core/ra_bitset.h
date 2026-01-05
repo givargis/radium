@@ -21,4 +21,6 @@ uint64_t ra_bitset_utilized(ra_bitset_t bitset);
 
 uint64_t ra_bitset_size(ra_bitset_t bitset);
 
+int ra_bitset_test(void);
+
 #endif /* __RA_BITSET_H__ */

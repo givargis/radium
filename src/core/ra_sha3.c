@@ -134,3 +134,45 @@ ra_sha3(const void *buf_, size_t len, void *out)
 	}
 	memcpy(out, state.b, RA_SHA3_LEN);
 }
+
+int
+ra_sha3_test(void)
+{
+	const char * const IN[] = {
+		"Hello World!",
+		"I think, therefore I am.",
+		"To be, or not to be, that is the question.",
+		"The only thing we have to fear is fear itself.",
+		"That's one small step for man, one giant leap for mankind."
+	};
+	const char * const OUT[] = {
+		"d0e47486bbf4c16acac26f8b65359297"
+		"3c1362909f90262877089f9c8a4536af",
+		"776a241fe325a97dbb4c06706c9a7666"
+		"d9ccdf3e3b257160f93732f504a686b0",
+		"b0ed6cbffe518fc6487729007afe43ec"
+		"2c81f75dafb366430ecf6869ee4061eb",
+		"4d412e894b376e84f4c410679725212b"
+		"7dec0ee0c94bc6679a006708a4b7f9b8",
+		"6fef564538f16204a4b1424abdb2e3d3"
+		"d3d3a0f9e1357469f0d3dff36857808f"
+	};
+	uint8_t out[32];
+	char out_[65];
+	int i, j;
+
+	for (i=0; i<(int)RA_ARRAY_SIZE(IN); ++i) {
+		ra_sha3(IN[i], strlen(IN[i]), out);
+		for (j=0; j<32; ++j) {
+			ra_sprintf(out_ + 2 * j,
+				   sizeof (out_) - 2 * j,
+				   "%02x",
+				   (int)out[j]);
+		}
+		if (strcmp(OUT[i], out_)) {
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+	return 0;
+}

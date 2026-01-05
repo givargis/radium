@@ -13,4 +13,6 @@ char *ra_file_string_read(const char *pathname);
 
 int ra_file_string_write(const char *pathname, const char *s);
 
+int ra_file_test(void);
+
 #endif /* __RA_FILE_H__ */

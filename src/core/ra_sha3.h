@@ -9,4 +9,6 @@
 
 void ra_sha3(const void *buf, size_t len, void *out);
 
+int ra_sha3_test(void);
+
 #endif /* __RA_SHA3_H__ */

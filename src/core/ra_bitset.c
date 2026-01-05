@@ -2,8 +2,6 @@
 
 #include "ra_bitset.h"
 
-#define UL(x) ( (uint64_t)(x) )
-
 struct ra_bitset {
 	uint64_t ii;
 	uint64_t size;
@@ -16,7 +14,7 @@ set(struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	bitset->bitmaps[s][Q] |= (UL(1) << R);
+	bitset->bitmaps[s][Q] |= ((uint64_t)1 << R);
 }
 
 static void
@@ -25,7 +23,7 @@ clr(struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t Q = i / 64;
 	const uint64_t R = i % 64;
 
-	bitset->bitmaps[s][Q] &= ~(UL(1) << R);
+	bitset->bitmaps[s][Q] &= ~((uint64_t)1 << R);
 }
 
 static int
@@ -35,7 +33,7 @@ get(const struct ra_bitset *bitset, uint64_t s, uint64_t i)
 	const uint64_t R = i % 64;
 
 	if (i < bitset->size) {
-		if ( (bitset->bitmaps[s][Q] & (UL(1) << R)) ) {
+		if ( (bitset->bitmaps[s][Q] & ((uint64_t)1 << R)) ) {
 			return 1;
 		}
 	}
@@ -163,4 +161,119 @@ ra_bitset_size(ra_bitset_t bitset)
 	assert( bitset );
 
 	return bitset->size;
+}
+
+int
+ra_bitset_test(void)
+{
+	const int N = 2000000000;
+	const int M = 10000;
+	const int K = 10000000;
+	ra_bitset_t bitset;
+	uint64_t n;
+	int i, j;
+	struct {
+		uint64_t i;
+		uint64_t n;
+	} *table;
+
+	/* single bit */
+
+	if (!(bitset = ra_bitset_open(1))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	if ((1 != ra_bitset_size(bitset)) ||
+	    (1 != ra_bitset_utilized(bitset)) ||
+	    (0 != ra_bitset_reserve(bitset, 1))) {
+		ra_bitset_close(bitset);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_bitset_close(bitset);
+
+	/* 64 bits */
+
+	if (!(bitset = ra_bitset_open(64))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	for (i=0; i<63; ++i) {
+		if ((64 != ra_bitset_size(bitset)) ||
+		    ((i + 1) != (int)ra_bitset_reserve(bitset, 1)) ||
+		    ((i + 2) != (int)ra_bitset_utilized(bitset))) {
+			ra_bitset_close(bitset);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+	if (ra_bitset_reserve(bitset, 1)) {
+		ra_bitset_close(bitset);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_bitset_close(bitset);
+
+	/* random operations */
+
+	if (!(table = malloc(M * sizeof (table[0])))) {
+		RA_TRACE("out of memory");
+		return -1;
+	}
+	memset(table, 0, M * sizeof (table[0]));
+	if (!(bitset = ra_bitset_open(N))) {
+		RA_FREE(table);
+		RA_TRACE("^");
+		return -1;
+	}
+	for (i=0; i<K; ++i) {
+		j = i % M;
+		if (table[j].i) {
+			if ((table[j].n != ra_bitset_validate(bitset,
+							      table[j].i)) ||
+			    (table[j].n != ra_bitset_release(bitset,
+							     table[j].i))) {
+				ra_bitset_close(bitset);
+				RA_FREE(table);
+				RA_TRACE("integrity failure detected");
+				return -1;
+			}
+			table[j].i = 0;
+			table[j].n = 0;
+		}
+		else {
+			table[j].n = 1 + (rand() % 99);
+			table[j].i = ra_bitset_reserve(bitset, table[j].n);
+			if (!table[j].i) {
+				ra_bitset_close(bitset);
+				RA_FREE(table);
+				RA_TRACE("^");
+				return -1;
+			}
+		}
+	}
+	n = ra_bitset_utilized(bitset);
+	for (i=0; i<M; ++i) {
+		if (table[i].n) {
+			if (table[i].n != ra_bitset_release(bitset,
+							    table[i].i)) {
+				ra_bitset_close(bitset);
+				RA_FREE(table);
+				RA_TRACE("integrity failure detected");
+				return -1;
+			}
+			n -= table[i].n;
+		}
+		table[i].i = 0;
+		table[i].n = 0;
+	}
+	if ((1 != n) || (1 != ra_bitset_utilized(bitset))) {
+		ra_bitset_close(bitset);
+		RA_FREE(table);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_bitset_close(bitset);
+	RA_FREE(table);
+	return 0;
 }

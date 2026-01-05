@@ -493,3 +493,170 @@ ra_json_array_size(const struct ra_json_node *node)
 	}
 	return size;
 }
+
+int
+ra_json_test(void)
+{
+	const struct ra_json_node *node;
+	ra_json_t json;
+
+	/* empty array */
+
+	if (!(json = ra_json_open("[]"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    node->u.array.node ||
+	    (node = node->u.array.link)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+
+	/* empty object */
+
+	if (!(json = ra_json_open("{}"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    node->u.object.key ||
+	    node->u.object.node ||
+	    (node = node->u.object.link)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+
+	/* single-element array */
+
+	if (!(json = ra_json_open("[true]"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !node->u.array.node ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.array.node->op) ||
+	    (1 != node->u.array.node->u.bool_) ||
+	    (node = node->u.array.link)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+
+	/* single-element object */
+
+	if (!(json = ra_json_open("{\"key\":false}"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.key ||
+	    strcmp("key", node->u.object.key) ||
+	    !node->u.object.node ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.object.node->op) ||
+	    (0 != node->u.object.node->u.bool_) ||
+	    (node = node->u.object.link)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+
+	/* two-element array */
+
+	if (!(json = ra_json_open("[\"hello\",\"world\"]"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !node->u.array.node ||
+	    (RA_JSON_NODE_OP_STRING != node->u.array.node->op) ||
+	    !node->u.array.node->u.string ||
+	    strcmp("hello", node->u.array.node->u.string) ||
+	    !(node = node->u.array.link) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !node->u.array.node ||
+	    (RA_JSON_NODE_OP_STRING != node->u.array.node->op) ||
+	    !node->u.array.node->u.string ||
+	    strcmp("world", node->u.array.node->u.string) ||
+	    (node = node->u.array.link)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+
+	/* two-element object */
+
+	if (!(json = ra_json_open("{\"key1\":0.5,\"key2\":-.75}"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.node ||
+	    !node->u.object.key ||
+	    strcmp("key1", node->u.object.key) ||
+	    (RA_JSON_NODE_OP_NUMBER != node->u.object.node->op) ||
+	    (0.5 != node->u.object.node->u.number) ||
+	    !(node = node->u.object.link) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.node ||
+	    !node->u.object.key ||
+	    strcmp("key2", node->u.object.key) ||
+	    (RA_JSON_NODE_OP_NUMBER != node->u.object.node->op) ||
+	    (-0.75 != node->u.object.node->u.number) ||
+	    (node = node->u.object.link)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+
+	/* nested */
+
+	if (!(json = ra_json_open("[[true,false],{\"key\":\"val\"}]"))) {
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !(node = node->u.array.node) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.array.node->op) ||
+	    (1 != node->u.array.node->u.bool_) ||
+	    !(node = node->u.array.link) ||
+	    (RA_JSON_NODE_OP_BOOL != node->u.array.node->op) ||
+	    (0 != node->u.array.node->u.bool_)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	if (!(node = ra_json_root(json)) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !(node = node->u.array.link) ||
+	    (RA_JSON_NODE_OP_ARRAY != node->op) ||
+	    !(node = node->u.array.node) ||
+	    (RA_JSON_NODE_OP_OBJECT != node->op) ||
+	    !node->u.object.key ||
+	    strcmp("key", node->u.object.key) ||
+	    !(node = node->u.object.node) ||
+	    (RA_JSON_NODE_OP_STRING != node->op) ||
+	    strcmp("val", node->u.string)) {
+		ra_json_close(json);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_json_close(json);
+	return 0;
+}

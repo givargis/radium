@@ -239,3 +239,99 @@ ra_map_items(ra_map_t map)
 
 	return map->items;
 }
+
+int
+ra_map_test(void)
+{
+	const int N = 200000;
+	const void *val_;
+	ra_map_t map;
+	char key[32];
+	char val[32];
+	int i;
+
+	/* initialize */
+
+	if (!(map = ra_map_open())) {
+		RA_TRACE("^");
+		return -1;
+	}
+	if (0 != ra_map_items(map)) {
+		ra_map_close(map);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* single item */
+
+	if (ra_map_update(map, "key", "val") ||
+	    (1 != ra_map_items(map)) ||
+	    strcmp("val",
+		   ra_map_lookup(map, "key") ?
+		   ra_map_lookup(map, "key") : "") ||
+	    ra_map_update(map, "key", "lav") ||
+	    (1 != ra_map_items(map)) ||
+	    strcmp("lav",
+		   ra_map_lookup(map, "key") ?
+		   ra_map_lookup(map, "key") : "")) {
+		ra_map_close(map);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* empty */
+
+	ra_map_empty(map);
+	if (0 != ra_map_items(map)) {
+		ra_map_close(map);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* random update */
+
+	srand(10);
+	for (i=0; i<N; ++i) {
+		ra_sprintf(key, sizeof (key), "%d-%d", rand(), i);
+		ra_sprintf(val, sizeof (val), "%d-%d", rand(), i);
+		if (ra_map_update(map, key, val)) {
+			ra_map_close(map);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+		val_ = ra_map_lookup(map, key);
+		if (!val_ || strcmp(val_, val)) {
+			ra_map_close(map);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+
+	/* random lookup */
+
+	srand(10);
+	for (i=0; i<N; ++i) {
+		ra_sprintf(key, sizeof (key), "%d-%d", rand(), i);
+		ra_sprintf(val, sizeof (val), "%d-%d", rand(), i);
+		val_ = ra_map_lookup(map, key);
+		if (!val_ || strcmp(val_, val)) {
+			ra_map_close(map);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+
+	/* empty */
+
+	ra_map_empty(map);
+	if (0 != ra_map_items(map)) {
+		ra_map_close(map);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* done */
+
+	ra_map_close(map);
+	return 0;
+}

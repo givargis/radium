@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 
+#include "ra_file.h"
 #include "ra_jitc.h"
 
 struct ra_jitc {
@@ -51,12 +52,12 @@ ra_jitc_compile(const char *input, const char *output)
 			break;
 		}
 		if ((-1 == pid_) || (pid_ != pid) || !WIFEXITED(status)) {
-			RA_TRACE("software error (abort)");
+			RA_TRACE("system failure detected (abort)");
 			abort();
 			return -1;
 		}
 		if (WEXITSTATUS(status)) {
-			RA_TRACE("failed to compile jit code");
+			RA_TRACE("system failure detected");
 			return -1;
 		}
 	}
@@ -103,4 +104,40 @@ ra_jitc_lookup(ra_jitc_t jitc, const char *symbol)
 	assert( symbol && strlen(symbol) );
 
 	return (long)dlsym(jitc->handle, symbol);
+}
+
+int
+ra_jitc_test(void)
+{
+	const char * const PRG = "int fnc(int a) { return a + 1; }\n";
+	const char *input, *output;
+	int (*fnc)(int);
+	ra_jitc_t jitc;
+
+	input = NULL;
+	output = NULL;
+	if (!(input = ra_pathname(".c")) ||
+	    !(output = ra_pathname(".so")) ||
+	    ra_file_string_write(input, PRG) ||
+	    ra_jitc_compile(input, output) ||
+	    !(jitc = ra_jitc_open(output))) {
+		ra_unlink(input);
+		ra_unlink(output);
+		RA_FREE(input);
+		RA_FREE(output);
+		RA_TRACE("^");
+		return -1;
+	}
+	ra_unlink(input);
+	ra_unlink(output);
+	RA_FREE(input);
+	RA_FREE(output);
+	if (!(fnc = (int (*)(int))ra_jitc_lookup(jitc, "fnc")) ||
+	    (17 != fnc(16))) {
+		ra_jitc_close(jitc);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_jitc_close(jitc);
+	return 0;
 }

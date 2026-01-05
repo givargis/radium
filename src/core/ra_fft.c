@@ -83,3 +83,28 @@ ra_fft_inverse(struct ra_fft_complex *signal, int n)
 		signal[i].i /= n;
 	}
 }
+
+int
+ra_fft_test(void)
+{
+	struct ra_fft_complex signal[8192 * 2];
+	struct ra_fft_complex signal_[8192 * 2];
+	int i, n;
+
+	n = RA_ARRAY_SIZE(signal) / 2;
+	for (i=0; i<n; ++i) {
+		signal[i].r = .5 - (rand() / (double)RAND_MAX) * 1.0;
+		signal[i].i = 0.0;
+		signal_[i] = signal[i];
+	}
+	ra_fft_forward(signal, n);
+	ra_fft_inverse(signal, n);
+	for (i=0; i<n; ++i) {
+		if ((1e-6 < fabs(signal[i].r - signal_[i].r)) ||
+		    (1e-6 < fabs(signal[i].i - signal_[i].i))) {
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+	return 0;
+}

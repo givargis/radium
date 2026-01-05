@@ -23,4 +23,6 @@
 
 void ra_core_init(void);
 
+int ra_core_test(void);
+
 #endif /* __RA_CORE_H__ */

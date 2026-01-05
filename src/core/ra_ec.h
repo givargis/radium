@@ -35,4 +35,6 @@ void ra_ec_encode_dq(void *buf, int k, int n, int x);
 
 void ra_ec_encode_dd(void *buf, int k, int n, int x, int y);
 
+int ra_ec_test(void);
+
 #endif /* __RA_EC_H__ */

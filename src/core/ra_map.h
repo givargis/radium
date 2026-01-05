@@ -23,4 +23,6 @@ int ra_map_iterate(ra_map_t map, ra_map_fnc_t fnc, void *ctx);
 
 uint64_t ra_map_items(ra_map_t map);
 
+int ra_map_test(void);
+
 #endif /* __RA_MAP_H__ */

@@ -7,4 +7,6 @@
 
 uint64_t ra_hash(const void *buf, size_t len);
 
+int ra_hash_test(void);
+
 #endif /* __RA_HASH_H__ */

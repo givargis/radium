@@ -362,3 +362,116 @@ ra_ec_encode_dd(void *buf, int k, int n, int x_, int y_)
 		y[i] ^= x[i];
 	}
 }
+
+int
+ra_ec_test(void)
+{
+	const int K = 255, N = 8192;
+	void *buf1, *buf2;
+	int i, j;
+
+	/* initialize */
+
+	if (!(buf1 = malloc((K + 2) * N)) || !(buf2 = malloc((K + 2) * N))) {
+		RA_FREE(buf1);
+		RA_TRACE("out of memory");
+		return -1;
+	}
+
+	/* populate data blocks */
+
+	memset(buf1, 0, (K + 2) * N);
+	memset(buf2, 0, (K + 2) * N);
+	for (i=0; i<(K * N); ++i) {
+		*((uint8_t *)buf1 + i) = rand() % 256;
+	}
+	memcpy(buf1, buf2, K * N);
+
+	/* encode P and Q */
+
+	ra_ec_encode_pq(buf1, K, N);
+
+	/* encode P */
+
+	ra_ec_encode_p(buf2, K, N);
+	if (memcmp(RA_EC_P(buf1, K, N), RA_EC_P(buf2, K, N), N)) {
+		RA_FREE(buf1);
+		RA_FREE(buf2);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* encode Q */
+
+	ra_ec_encode_q(buf2, K, N);
+	if (memcmp(RA_EC_Q(buf1, K, N), RA_EC_Q(buf2, K, N), N)) {
+		RA_FREE(buf1);
+		RA_FREE(buf2);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* one D[*]/P encode */
+
+	for (j=0; j<K; ++j) {
+		memset(RA_EC_D(buf2, j, N), rand(), N);
+		ra_ec_encode_dp(buf2, K, N, j);
+	}
+	if (memcmp(buf1, buf2, (K + 2) * N)) {
+		RA_FREE(buf1);
+		RA_FREE(buf2);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* one D[*]/Q encode */
+
+	for (j=0; j<K; ++j) {
+		memset(RA_EC_D(buf2, j, N), rand(), N);
+		ra_ec_encode_dq(buf2, K, N, j);
+	}
+	if (memcmp(buf1, buf2, (K + 2) * N)) {
+		RA_FREE(buf1);
+		RA_FREE(buf2);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
+	/* two D[*] encode */
+
+	for (i=0; i<K; i+=7) {
+		for (j=i+1; j<K; j+=7) {
+			memset(RA_EC_D(buf2, i, N), rand(), N);
+			memset(RA_EC_D(buf2, j, N), rand(), N);
+			ra_ec_encode_dd(buf2, K, N, i, j);
+			if (memcmp(RA_EC_D(buf1, i, N),
+				   RA_EC_D(buf2, i, N),
+				   N) ||
+			    memcmp(RA_EC_D(buf1, j, N),
+				   RA_EC_D(buf2, j, N),
+				   N)) {
+				RA_FREE(buf1);
+				RA_FREE(buf2);
+				RA_TRACE("integrity failure detected");
+				return -1;
+			}
+		}
+	}
+
+	/* sanity check data blocks */
+
+	for (j=0; j<K; ++j) {
+		if (memcmp(buf1, buf2, (K + 2) * N)) {
+			RA_FREE(buf1);
+			RA_FREE(buf2);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+
+	/* done */
+
+	RA_FREE(buf1);
+	RA_FREE(buf2);
+	return 0;
+}

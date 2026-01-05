@@ -52,3 +52,36 @@ ra_hash(const void *buf_, size_t len)
 	shuffle(&x, &y, (uint64_t)len);
 	return x + y;
 }
+
+int
+ra_hash_test(void)
+{
+	const int N = 100000;
+	double stats[64];
+	char buf[128];
+	uint64_t hash;
+	size_t len;
+	int i, j;
+
+	memset(stats, 0, sizeof (stats));
+	for (i=0; i<N; ++i) {
+		for (j=0; j<(int)RA_ARRAY_SIZE(buf); ++j) {
+			buf[j] = (char)rand();
+		}
+		len = rand() % (sizeof (buf));
+		hash = ra_hash(buf, len);
+		for (j=0; j<64; ++j) {
+			if (hash & ((uint64_t)1 << j)) {
+				stats[j] += 1.0;
+			}
+		}
+	}
+	for (i=0; i<64; ++i) {
+		stats[i] /= N;
+		if ((0.55 < stats[i]) || (0.45 > stats[i])) {
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+	return 0;
+}

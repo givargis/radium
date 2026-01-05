@@ -96,9 +96,71 @@ int
 ra_file_string_write(const char *pathname, const char *s)
 {
 	s = s ? s : "";
-	if (ra_file_write(pathname, s, strlen(s) + 1)) {
+	if (ra_file_write(pathname, s, strlen(s))) {
 		RA_TRACE("^");
 		return -1;
 	}
+	return 0;
+}
+
+int
+ra_file_test(void)
+{
+	const char *pathname, *s;
+
+	/* zero-byte write/read */
+
+	if (!(pathname = ra_pathname(NULL)) ||
+	    ra_file_string_write(pathname, "")) {
+		RA_FREE(pathname);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_file_string_read(pathname)) || strlen(s)) {
+		ra_unlink(pathname);
+		RA_FREE(pathname);
+		RA_FREE(s);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	RA_FREE(s);
+
+	/* single-byte write/read */
+
+	if (ra_file_string_write(pathname, "x")) {
+		RA_FREE(pathname);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_file_string_read(pathname)) ||
+	    (1 != strlen(s)) ||
+	    ('x' != (*s))) {
+		ra_unlink(pathname);
+		RA_FREE(pathname);
+		RA_FREE(s);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	RA_FREE(s);
+
+	/* multi-byte write */
+
+	if (ra_file_string_write(pathname, pathname)) {
+		RA_FREE(pathname);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_file_string_read(pathname)) ||
+	    (strlen(pathname) != strlen(s)) ||
+	    strcmp(pathname, s)) {
+		ra_unlink(pathname);
+		RA_FREE(pathname);
+		RA_FREE(s);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_unlink(pathname);
+	RA_FREE(pathname);
+	RA_FREE(s);
 	return 0;
 }

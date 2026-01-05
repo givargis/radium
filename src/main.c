@@ -15,7 +15,8 @@ main(int argc, char *argv[])
 	(void)argv;
 
 	ra_core_init();
-	ra_bigint_test();
+	ra_core_test();
+	return 0;
 
 	if (!(s = ra_file_string_read("test"))) {
 		return -1;

@@ -15,4 +15,6 @@ void ra_jitc_close(ra_jitc_t jitc);
 
 long ra_jitc_lookup(ra_jitc_t jitc, const char *symbol);
 
+int ra_jitc_test(void);
+
 #endif /* __RA_JITC_H__ */

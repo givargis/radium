@@ -36,7 +36,7 @@ ra_base64_encode(const void *buf_, size_t len, char *s)
 	uint8_t a, b, c;
 	size_t i, q, r;
 
-	if (!buf || !len || !s || !(*s)) {
+	if (!buf || !len || !s) {
 		RA_TRACE("invalid arguments");
 		return -1;
 	}
@@ -133,6 +133,54 @@ ra_base64_decode(void *buf_, size_t *len, const char *s)
 			return -1;
 		}
 		(*(buf++)) = (a << 2) | (b >> 4); /* aaaaaabb */
+	}
+	return 0;
+}
+
+int
+ra_base64_test(void)
+{
+	const int N = 10000;
+	size_t j, len, len_;
+	char *buf, *buf_;
+	char *s;
+	int i;
+
+	for (i=0; i<N; ++i) {
+		s = NULL;
+		buf = NULL;
+		buf_ = NULL;
+		len = rand() % N + 1;
+		if (!(s = malloc(RA_BASE64_ENCODE_LEN(len) + 1)) ||
+		    !(buf = malloc(len)) ||
+		    !(buf_ = malloc(len))) {
+			RA_FREE(s);
+			RA_FREE(buf);
+			RA_FREE(buf_);
+			RA_TRACE("out of memory");
+			return -1;
+		}
+		for (j=0; j<len; ++j) {
+			buf[j] = buf_[j] = (char)(rand() % 256);
+		}
+		if (ra_base64_encode(buf, len, s) ||
+		    ra_base64_decode(buf_, &len_, s)) {
+			RA_FREE(s);
+			RA_FREE(buf);
+			RA_FREE(buf_);
+			RA_TRACE("^");
+			return -1;
+		}
+		if ((len != len_) || memcmp(buf, buf_, len)) {
+			RA_FREE(s);
+			RA_FREE(buf);
+			RA_FREE(buf_);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+		RA_FREE(s);
+		RA_FREE(buf);
+		RA_FREE(buf_);
 	}
 	return 0;
 }
