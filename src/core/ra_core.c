@@ -42,6 +42,7 @@ ra_core_test(void)
 	TEST(ra_jitc_test, "jitc");
 	TEST(ra_json_test, "json");
 	TEST(ra_map_test, "map");
+	TEST(ra_mlp_test, "mlp");
 	TEST(ra_sha3_test, "sha3");
 	return e;
 }

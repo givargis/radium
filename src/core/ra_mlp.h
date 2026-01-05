@@ -23,4 +23,6 @@ int ra_mlp_load(ra_mlp_t mlp, const char *pathname);
 
 int ra_mlp_store(ra_mlp_t mlp, const char *pathname);
 
+int ra_mlp_test(void);
+
 #endif /* __RA_MLP_H__ */

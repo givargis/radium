@@ -1,5 +1,7 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
+#include "ra_file.h"
+#include "ra_base64.h"
 #include "ra_mlp.h"
 
 struct ra_mlp {
@@ -16,6 +18,20 @@ struct ra_mlp {
 		float *b_;
 	} *net;
 };
+
+static unsigned
+argmax(const float *a, int n)
+{
+	int i, m;
+
+	m = 0;
+	for (i=1; i<n; ++i) {
+		if (a[m] < a[i]) {
+			m = i;
+		}
+	}
+	return (unsigned)m;
+}
 
 static void
 mac1(float *z, const float *a, const float *b, int n, int m)
@@ -132,7 +148,7 @@ randomize(struct ra_mlp *mlp)
 		float a = -sqrt(6.0 / (n * m)) * 1.0;
 		float b = +sqrt(6.0 / (n * m)) * 2.0;
 		for (i=0; i<(n*m); ++i) {
-			mlp->net[l].w[i] = a + (rand() / (double)RAND_MAX) * b;
+			mlp->net[l].w[i] = a + (rand() / (float)RAND_MAX) * b;
 		}
 	}
 }
@@ -422,5 +438,132 @@ ra_mlp_store(ra_mlp_t mlp, const char *pathname)
 		}
 	}
 	fclose(file);
+	return 0;
+}
+
+int
+ra_mlp_test(void)
+{
+	const char *IMAGES_PATHNAME = "core/images.dat";
+	const char *LABELS_PATHNAME = "core/labels.dat";
+	const int TRAIN_N = 60000;
+	const int TEST_N = 10000;
+	const int BATCH_SIZE = 8;
+	const char *s1, *s2;
+	uint8_t *images;
+	uint8_t *labels;
+	size_t n1, n2;
+	ra_mlp_t mlp;
+	float *x, *y;
+	int i, j, k;
+	int errors;
+
+	/* load MNIST data */
+
+	if (!(s1 = ra_file_string_read(IMAGES_PATHNAME)) ||
+	    !(s2 = ra_file_string_read(LABELS_PATHNAME))) {
+		RA_FREE(s1);
+		RA_TRACE("^");
+		return -1;
+	}
+	images = labels = NULL;
+	if (!(images = malloc(RA_BASE64_DECODE_LEN(strlen(s1)))) ||
+	    !(labels = malloc(RA_BASE64_DECODE_LEN(strlen(s2))))) {
+		RA_FREE(s1);
+		RA_FREE(s2);
+		RA_FREE(images);
+		RA_FREE(labels);
+		RA_TRACE("out of memory");
+		return -1;
+	}
+	if (ra_base64_decode(images, &n1, s1) ||
+	    ra_base64_decode(labels, &n2, s2)) {
+		RA_FREE(s1);
+		RA_FREE(s2);
+		RA_FREE(images);
+		RA_FREE(labels);
+		RA_TRACE("^");
+		return -1;
+	}
+	RA_FREE(s1);
+	RA_FREE(s2);
+
+	/* sanity check */
+
+	assert( (size_t)(TRAIN_N + TEST_N) * 28 * 28 == n1 );
+	assert( (size_t)(TRAIN_N + TEST_N) *  1 *  1 == n2 );
+
+	/* build model */
+
+	if (!(mlp = ra_mlp_open(28 * 28, 10, 50, 4))) {
+		RA_FREE(images);
+		RA_FREE(labels);
+		RA_TRACE("^");
+		return -1;
+	}
+
+	/* initialize */
+
+	if (!(x = malloc(BATCH_SIZE * 28 * 28 * sizeof (x[0]))) ||
+	    !(y = malloc(BATCH_SIZE *  1 * 10 * sizeof (y[0])))) {
+		RA_FREE(x);
+		RA_FREE(images);
+		RA_FREE(labels);
+		ra_mlp_close(mlp);
+		RA_TRACE("out of memory");
+		return -1;
+	}
+
+	/* train */
+
+	for (i=0; i<(TRAIN_N/BATCH_SIZE); ++i) {
+		for (j=0; j<BATCH_SIZE; ++j) {
+			for (k=0; k<(28*28); ++k) {
+				x[j * (28 * 28) + k] = (*(images++)) / 255.0;
+			}
+			for (k=0; k<10; ++k) {
+				y[j * 10 + k] = 0.0;
+			}
+			y[j * 10 + (*(labels++))] = 1.0;
+		}
+		ra_mlp_train(mlp, x, y, 0.1, BATCH_SIZE);
+	}
+
+	/* store/load */
+
+	if (ra_mlp_store(mlp, "mnist.mlp") || ra_mlp_load(mlp, "mnist.mlp")) {
+		RA_TRACE("^");
+		return -1;
+	}
+	ra_unlink("mnist.mlp");
+
+	/* test */
+
+	errors = 0;
+	for (i=0; i<TEST_N; ++i) {
+		for (k=0; k<(28*28); ++k) {
+			x[k] = (*(images++)) / 255.0;
+		}
+		if (argmax(ra_mlp_activate(mlp, x), 10) != (*(labels++))) {
+			++errors;
+		}
+	}
+
+	/* cleanup */
+
+	images -= (TRAIN_N + TEST_N) * 28 * 28;
+	labels -= (TRAIN_N + TEST_N) *  1 *  1;
+	RA_FREE(x);
+	RA_FREE(y);
+	RA_FREE(images);
+	RA_FREE(labels);
+	ra_mlp_close(mlp);
+
+	/* verify */
+
+	if ((TEST_N * 0.05) < errors) {
+		RA_TRACE("software bug detected");
+		return -1;
+	}
 	return 0;
 }
