@@ -35,6 +35,7 @@ ra_core_test(void)
 	e = 0;
 	TEST(ra_base64_test, "base64");
 	TEST(ra_bitset_test, "bitset");
+	TEST(ra_csv_test, "csv");
 	TEST(ra_ec_test, "ec");
 	TEST(ra_fft_test, "fft");
 	TEST(ra_file_test, "file");

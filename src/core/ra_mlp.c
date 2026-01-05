@@ -562,7 +562,7 @@ ra_mlp_test(void)
 	/* verify */
 
 	if ((TEST_N * 0.05) < errors) {
-		RA_TRACE("software bug detected");
+		RA_TRACE("integrity failure detected");
 		return -1;
 	}
 	return 0;
