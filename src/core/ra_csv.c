@@ -123,6 +123,10 @@ ra_csv_open(const char *s)
 		memset(csv->cells, 0, n);
 		parse(csv);
 	}
+	else {
+		csv->ncols = 0;
+		csv->nrows = 0;
+	}
 	return csv;
 }
 
