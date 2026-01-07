@@ -124,8 +124,8 @@ ra_csv_open(const char *s)
 		parse(csv);
 	}
 	else {
-		csv->ncols = 0;
-		csv->nrows = 0;
+		csv->n_cols = 0;
+		csv->n_rows = 0;
 	}
 	return csv;
 }
