@@ -7,8 +7,9 @@
 
 enum {
 	RA_LEXER_,
+	RA_LEXER_INT,
+	RA_LEXER_REAL,
 	RA_LEXER_STRING,
-	RA_LEXER_NUMERIC,
 	RA_LEXER_IDENTIFIER,
 	/*-*/
 	RA_LEXER_KEYWORD_,
@@ -85,30 +86,45 @@ enum {
 	RA_LEXER_OPERATOR_COLON,
 	RA_LEXER_OPERATOR_DOT,
 	RA_LEXER_OPERATOR_DEREF,
+	RA_LEXER_OPERATOR_BRACE_OPEN,
+	RA_LEXER_OPERATOR_BRACE_CLOSE,
 	RA_LEXER_OPERATOR_BRACKET_OPEN,
 	RA_LEXER_OPERATOR_BRACKET_CLOSE,
 	RA_LEXER_OPERATOR_PARENTH_OPEN,
 	RA_LEXER_OPERATOR_PARENTH_CLOSE,
 	RA_LEXER_OPERATOR_COMMA,
 	RA_LEXER_OPERATOR_SEMICOLON,
-	RA_LEXER_OPERATOR_DOTDOTDOT
+	RA_LEXER_OPERATOR_DOTDOTDOT,
+	RA_LEXER_OPERATOR_BACKTICK,
+	RA_LEXER_OPERATOR_AT,
+	RA_LEXER_OPERATOR_HASH,
+	RA_LEXER_OPERATOR_DOLLAR,
+	RA_LEXER_OPERATOR_SLASH,
+	/*-*/
+	RA_LEXER_END
 };
 
 struct ra_lexer_token {
 	int op;
-	const char *s;
 	unsigned lineno;
 	unsigned column;
+	union {
+		long i;
+		long double r;
+		const char *s;
+	} u;
 };
 
 typedef struct ra_lexer *ra_lexer_t;
 
-ra_lexer_t ra_lexer_open(const char *s);
+ra_lexer_t ra_lexer_open(const char *pathname);
 
 void ra_lexer_close(ra_lexer_t lexer);
 
 const struct ra_lexer_token *ra_lexer_lookup(ra_lexer_t lexer, uint64_t i);
 
 uint64_t ra_lexer_items(ra_lexer_t lexer);
+
+const char *ra_lexer_csv(ra_lexer_t lexer);
 
 #endif /* __RA_LEXER_H__ */

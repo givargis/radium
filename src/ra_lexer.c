@@ -5,18 +5,19 @@
 #define PAD    8
 #define N_MAPS 199
 
-#define TOKEN_LEN ( sizeof (struct ra_lexer_token) )
+#define TLEN ( sizeof (struct ra_lexer_token) )
 
-#define ERROR(l, m)				\
+#define ERROR(l, f, a)				\
 	do {					\
 		ra_printf(RA_COLOR_RED_BOLD,	\
 			  "error: ");		\
 		ra_printf(RA_COLOR_BLACK,	\
-			  "lexer: "		\
-			  "%u:%u: %s\n",	\
+			  "%s:%u:%u: "		\
+			  f "\n",		\
+			  (l)->pathname,	\
 			  (l)->lineno,		\
 			  (l)->column,		\
-			  (m));			\
+			  (a));			\
 		RA_TRACE("syntax error");	\
 	}					\
 	while (0)
@@ -26,6 +27,7 @@ struct ra_lexer {
 	unsigned lineno;
 	unsigned column;
 	ra_vector_t tokens;
+	const char *pathname;
 	struct map {
 		int op;
 		const char *s;
@@ -42,11 +44,11 @@ const char * const KEYWORDS[] = {
 };
 
 const char * const OPERATORS[] = {
-	"+",  "-",   "*",  "/",  "%",  "++", "--",  "==",  "!=", ">",  "<",
-	">=", "<=",  "&&", "||", "!",  "&",  "|",   "^",   "~",  "<<", ">>",
-	"=",  "+=",  "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|=",
-	"&",  "*",   "?",  ":",  ".",  "->", "[",   "]",   "(",  ")",  ",",
-	";",  "..."
+	"+",  "-",   "*",  "/",  "%",   "++", "--",  "==",  "!=", ">",  "<",
+	">=", "<=",  "&&", "||", "!",   "&",  "|",   "^",   "~",  "<<", ">>",
+	"=",  "+=",  "-=", "*=", "/=",  "%=", "<<=", ">>=", "&=", "^=", "|=",
+	"&",  "*",   "?",  ":",  ".",   "->", "{",    "}",  "[",  "]",
+	"(",  ")",  ",",   ";",  "...",	"`",  "@",   "#",   "$",  "\\"
 };
 
 static const char *
@@ -90,6 +92,7 @@ populate(struct ra_lexer *lexer, const char *s, int op)
 	int i;
 
 	assert( s && strlen(s) );
+	assert( (RA_LEXER_KEYWORD_ < op) && (RA_LEXER_END > op) );
 
 	h = ra_hash(s, strlen(s));
 	for (i=0; i<N_MAPS; ++i) {
@@ -137,33 +140,63 @@ process(struct ra_lexer *lexer, const char *b, const char *e)
 
 	if (b < e) {
 		if ((op = lookup(lexer, b, e))) {
-			if (!(token = ra_vector_append(lexer->tokens,
-						       TOKEN_LEN))) {
+			if (!(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
 			token->op = op;
-			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column - (unsigned)(e - b);
-		} else if (is_identifier(b, e)) {
+		}
+		else if (is_identifier(b, e)) {
 			if (!(s = strdupl(b, e)) ||
-			    !(token = ra_vector_append(lexer->tokens,
-						       TOKEN_LEN))) {
+			    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_FREE(s);
 				RA_TRACE("^");
 				return -1;
 			}
 			token->op = RA_LEXER_IDENTIFIER;
-			token->s = s;
+			token->u.s = s;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column - (unsigned)(e - b);
-		} else {
-			ERROR(lexer, "invalid token");
+		}
+		else {
+			ERROR(lexer, "invalid token", "");
 			return -1;
 		}
 	}
 	return 0;
+}
+
+static char *
+process_comment(struct ra_lexer *lexer, const char *b)
+{
+	const char *e;
+
+	assert( ('/' == b[0]) && ('*' == b[1]) );
+
+	e = b + 2;
+	while (*e) {
+		if ('\n' == (*e)) {
+			lexer->lineno += 1;
+			lexer->column  = 1;
+			++e;
+		}
+		else if (('/' == e[0]) && ('*' == e[1])) {
+			ERROR(lexer, "'/*' within block comment", "");
+			return NULL;
+		}
+		else if (('*' == e[0]) && ('/' == e[1])) {
+			lexer->column += 2;
+			return (char *)(e + 2);
+		}
+		else {
+			lexer->column += 1;
+			++e;
+		}
+	}
+	ERROR(lexer, "unterminated /* comment", "");
+	return NULL;
 }
 
 static char *
@@ -172,6 +205,8 @@ process_string(struct ra_lexer *lexer, const char *b)
 	struct ra_lexer_token *token;
 	const char *s, *e;
 	char quote;
+
+	assert( ('\"' == b[0]) || ('\'' == b[0]) );
 
 	e = b;
 	quote = (*b);
@@ -182,14 +217,13 @@ process_string(struct ra_lexer *lexer, const char *b)
 			lexer->column += 1;
 			++e;
 			if (!(s = strdupl(b, e)) ||
-			    !(token = ra_vector_append(lexer->tokens,
-						       TOKEN_LEN))) {
+			    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_FREE(s);
 				RA_TRACE("^");
 				return NULL;
 			}
 			token->op = RA_LEXER_STRING;
-			token->s = s;
+			token->u.s = s;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column - (unsigned)(e - b);
 			return (char *)e;
@@ -198,12 +232,12 @@ process_string(struct ra_lexer *lexer, const char *b)
 			lexer->column += 1;
 			++e;
 			if (!(*e)) {
-				ERROR(lexer, "missing escape character");
+				ERROR(lexer, "missing escape character", "");
 				return NULL;
 			}
 		}
 	}
-	ERROR(lexer, "missing terminating character");
+	ERROR(lexer, "missing terminating '%c' character", quote);
 	return NULL;
 }
 
@@ -219,13 +253,13 @@ process_numeric(struct ra_lexer *lexer, const char *b)
 		++lexer->column;
 	}
 	if (!(s = strdupl(b, e)) ||
-	    !(token = ra_vector_append(lexer->tokens, TOKEN_LEN))) {
+	    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 		RA_FREE(s);
 		RA_TRACE("^");
 		return NULL;
 	}
-	token->op = RA_LEXER_NUMERIC;
-	token->s = s;
+	token->op = RA_LEXER_REAL;
+	token->u.r = 1.2;
 	token->lineno = lexer->lineno;
 	token->column = lexer->column - (unsigned)(e - b);
 	return (char *)e;
@@ -251,11 +285,13 @@ tokenize(struct ra_lexer *lexer)
 			if ('\n' == (*e)) {
 				lexer->lineno += 1;
 				lexer->column  = 1;
-			} else {
+			}
+			else {
 				lexer->column += 1;
 			}
 			b = ++e;
-		} else if (('/' == e[0]) && ('/' == e[1])) {
+		}
+		else if (('/' == e[0]) && ('/' == e[1])) {
 			if (process(lexer, b, e)) {
 				RA_TRACE("^");
 				return -1;
@@ -264,70 +300,75 @@ tokenize(struct ra_lexer *lexer)
 				++e;
 			}
 			b = e;
-		} else if (('"' == (*e)) || ('\'' == (*e))) {
-			if (process(lexer, b, e)) {
-				RA_TRACE("^");
-				return -1;
-			}
-			if (!(e = process_string(lexer, e))) {
+		}
+		else if (('/' == e[0]) && ('*' == e[1])) {
+			if (process(lexer, b, e) ||
+			    !(e = process_comment(lexer, e))) {
 				RA_TRACE("^");
 				return -1;
 			}
 			b = e;
-		} else if ((op = lookup(lexer, e, e + 3)) &&
-			   (RA_LEXER_OPERATOR_ < op)) {
+		}
+		else if (('"' == (*e)) || ('\'' == (*e))) {
 			if (process(lexer, b, e) ||
-			    !(token = ra_vector_append(lexer->tokens,
-						       TOKEN_LEN))) {
+			    !(e = process_string(lexer, e))) {
+				RA_TRACE("^");
+				return -1;
+			}
+			b = e;
+		}
+		else if ((op = lookup(lexer, e, e + 3)) &&
+			 (RA_LEXER_OPERATOR_ < op)) {
+			if (process(lexer, b, e) ||
+			    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
 			token->op = op;
-			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column;
 			lexer->column += 3;
 			e += 3;
 			b = e;
-		} else if ((op = lookup(lexer, e, e + 2)) &&
-			   (RA_LEXER_OPERATOR_ < op)) {
+		}
+		else if ((op = lookup(lexer, e, e + 2)) &&
+			 (RA_LEXER_OPERATOR_ < op)) {
 			if (process(lexer, b, e) ||
-			    !(token = ra_vector_append(lexer->tokens,
-						       TOKEN_LEN))) {
+			    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
 			token->op = op;
-			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column;
 			lexer->column += 2;
 			e += 2;
 			b = e;
-		} else if ((op = lookup(lexer, e, e + 1)) &&
-			   (RA_LEXER_OPERATOR_ < op)) {
+		}
+		else if ((op = lookup(lexer, e, e + 1)) &&
+			 (RA_LEXER_OPERATOR_ < op)) {
 			if (process(lexer, b, e) ||
-			    !(token = ra_vector_append(lexer->tokens,
-						       TOKEN_LEN))) {
+			    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_TRACE("^");
 				return -1;
 			}
 			token->op = op;
-			token->s = NULL;
 			token->lineno = lexer->lineno;
 			token->column = lexer->column;
 			lexer->column += 1;
 			e += 1;
 			b = e;
-		} else if ((b == e) &&
-			   (isdigit((unsigned char)(*e)) ||
-			    (('.' == e[0]) && isdigit((unsigned char)e[1])))) {
+		}
+		else if ((b == e) &&
+			 (isdigit((unsigned char)(*e)) ||
+			  (('.' == e[0]) && isdigit((unsigned char)e[1])))) {
 			if (!(e = process_numeric(lexer, e))) {
 				RA_TRACE("^");
 				return -1;
 			}
 			b = e;
-		} else {
+		}
+		else {
 			lexer->column += 1;
 			++e;
 		}
@@ -340,18 +381,20 @@ tokenize(struct ra_lexer *lexer)
 }
 
 ra_lexer_t
-ra_lexer_open(const char *s)
+ra_lexer_open(const char *pathname)
 {
 	struct ra_lexer *lexer;
+	const char *s;
 	size_t i;
 
-	assert( s );
+	assert( pathname && strlen(pathname) );
 
 	if (!(lexer = malloc(sizeof (struct ra_lexer)))) {
 		RA_TRACE("out of memory");
 		return NULL;
 	}
 	memset(lexer, 0, sizeof (struct ra_lexer));
+	lexer->pathname = pathname;
 	for (i=0; i<RA_ARRAY_SIZE(KEYWORDS); ++i) {
 		populate(lexer, KEYWORDS[i], RA_LEXER_KEYWORD_ + (int)(i+1));
 	}
@@ -363,13 +406,20 @@ ra_lexer_open(const char *s)
 		RA_TRACE("^");
 		return NULL;
 	}
+	if (!(s = ra_file_string_read(pathname))) {
+		ra_lexer_close(lexer);
+		RA_TRACE("^");
+		return NULL;
+	}
 	if (!(lexer->s = malloc(strlen(s) + PAD))) {
 		ra_lexer_close(lexer);
+		RA_FREE(s);
 		RA_TRACE("out of memory");
 		return NULL;
 	}
 	memcpy(lexer->s, s, strlen(s));
 	memset(lexer->s + strlen(s), 0, PAD);
+	RA_FREE(s);
 	if (tokenize(lexer)) {
 		ra_lexer_close(lexer);
 		RA_TRACE("^");
@@ -388,7 +438,10 @@ ra_lexer_close(ra_lexer_t lexer)
 		if (lexer->tokens) {
 			for (i=0; i<ra_vector_items(lexer->tokens); ++i) {
 				token = ra_vector_lookup(lexer->tokens, i);
-				RA_FREE(token->s);
+				if ((RA_LEXER_IDENTIFIER == token->op) ||
+				    (RA_LEXER_STRING == token->op)) {
+					RA_FREE(token->u.s);
+				}
 			}
 			ra_vector_close(lexer->tokens);
 		}
@@ -412,4 +465,114 @@ ra_lexer_items(ra_lexer_t lexer)
 	assert( lexer );
 
 	return ra_vector_items(lexer->tokens);
+}
+
+const char *
+ra_lexer_csv(ra_lexer_t lexer)
+{
+	const struct ra_lexer_token *token;
+	const char *s, *pathname;
+	char buf[256];
+	FILE *file;
+	uint64_t i;
+	int op;
+
+	assert( lexer );
+
+	if (!(pathname = ra_pathname(NULL))) {
+		RA_TRACE("^");
+		return NULL;
+	}
+	if (!(file = fopen(pathname, "w"))) {
+		RA_FREE(pathname);
+		RA_TRACE("unable to open temporary file");
+		return NULL;
+	}
+	if (0 > fprintf(file, "LINENO,COLUMN,OP,VALUE\n")) {
+		fclose(file);
+		ra_unlink(pathname);
+		RA_FREE(pathname);
+		RA_TRACE("file write failed");
+		return NULL;
+	}
+	for (i=0; i<ra_lexer_items(lexer); ++i) {
+		token = ra_lexer_lookup(lexer, i);
+		if ((RA_LEXER_OPERATOR_ < token->op) &&
+		    (RA_LEXER_END > token->op)) {
+			op = token->op - RA_LEXER_OPERATOR_ - 1;
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,%s,",
+				   token->lineno,
+				   token->column,
+				   OPERATORS[op]);
+		}
+		else if ((RA_LEXER_KEYWORD_ < token->op) &&
+			 (RA_LEXER_OPERATOR_ > token->op)) {
+			op = token->op - RA_LEXER_KEYWORD_ - 1;
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,%s,",
+				   token->lineno,
+				   token->column,
+				   KEYWORDS[op]);
+		}
+		else if (RA_LEXER_INT == token->op) {
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,INT,%ld",
+				   token->lineno,
+				   token->column,
+				   token->u.i);
+		}
+		else if (RA_LEXER_REAL == token->op) {
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,REAL,%Lf",
+				   token->lineno,
+				   token->column,
+				   token->u.r);
+		}
+		else if (RA_LEXER_STRING == token->op) {
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,STRING,%s",
+				   token->lineno,
+				   token->column,
+				   token->u.s);
+		}
+		else if (RA_LEXER_IDENTIFIER == token->op) {
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,IDENTIFIER,%s",
+				   token->lineno,
+				   token->column,
+				   token->u.s);
+		}
+		else {
+			assert( 0 );
+		}
+		if (0 > fprintf(file, "%s\n", buf)) {
+			fclose(file);
+			ra_unlink(pathname);
+			RA_FREE(pathname);
+			RA_TRACE("file write failed");
+			return NULL;
+		}
+	}
+	if (fclose(file)) {
+		ra_unlink(pathname);
+		RA_FREE(pathname);
+		RA_TRACE("file write failed");
+		return NULL;
+	}
+	if (!(s = ra_file_string_read(pathname))) {
+		ra_unlink(pathname);
+		RA_FREE(pathname);
+		RA_TRACE("^");
+		return NULL;
+	}
+	ra_unlink(pathname);
+	RA_FREE(pathname);
+	return s;
 }

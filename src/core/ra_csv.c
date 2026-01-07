@@ -142,7 +142,8 @@ ra_csv_cols(ra_csv_t csv)
 int
 ra_csv_print(ra_csv_t csv)
 {
-	const int OUTLINE_COLOR = RA_COLOR_GRAY_BOLD;
+	const int HEADER_COLOR = RA_COLOR_GREEN_BOLD;
+	const int BORDER_COLOR = RA_COLOR_CYAN_BOLD;
 	const int TEXT_COLOR = RA_COLOR_BLUE;
 	uint64_t i, j, n;
 	uint64_t *widths;
@@ -165,33 +166,33 @@ ra_csv_print(ra_csv_t csv)
 			widths[j] = RA_MAX(widths[j], cell ? strlen(cell) : 0);
 		}
 	}
-	ra_printf(OUTLINE_COLOR, "+");
+	ra_printf(BORDER_COLOR, "+");
 	for (j=0; j<ra_csv_cols(csv); ++j) {
 		n = widths[j] + 2;
 		for (i=0; i<n; ++i) {
-			ra_printf(OUTLINE_COLOR, "-");
+			ra_printf(BORDER_COLOR, "-");
 		}
-		ra_printf(OUTLINE_COLOR, "+");
+		ra_printf(BORDER_COLOR, "+");
 	}
-	ra_printf(OUTLINE_COLOR, "\n|");
+	ra_printf(BORDER_COLOR, "\n|");
 	for (j=0; j<ra_csv_cols(csv); ++j) {
 		ra_sprintf(format, sizeof (format), " %%%ds ", (int)widths[j]);
-		ra_printf(TEXT_COLOR,
+		ra_printf(HEADER_COLOR,
 			  format,
 			  ra_csv_cell(csv, 0, j) ?
 			  ra_csv_cell(csv, 0, j) : "");
-		ra_printf(OUTLINE_COLOR, "|");
+		ra_printf(BORDER_COLOR, "|");
 	}
-	ra_printf(OUTLINE_COLOR, "\n+");
+	ra_printf(BORDER_COLOR, "\n+");
 	for (j=0; j<ra_csv_cols(csv); ++j) {
 		n = widths[j] + 2;
 		for (i=0; i<n; ++i) {
-			ra_printf(OUTLINE_COLOR, "-");
+			ra_printf(BORDER_COLOR, "-");
 		}
-		ra_printf(OUTLINE_COLOR, "+");
+		ra_printf(BORDER_COLOR, "+");
 	}
 	for (i=1; i<ra_csv_rows(csv); ++i) {
-		ra_printf(OUTLINE_COLOR, "\n|");
+		ra_printf(BORDER_COLOR, "\n|");
 		for (j=0; j<ra_csv_cols(csv); ++j) {
 			ra_sprintf(format,
 				   sizeof (format),
@@ -201,18 +202,18 @@ ra_csv_print(ra_csv_t csv)
 				  format,
 				  ra_csv_cell(csv, i, j) ?
 				  ra_csv_cell(csv, i, j) : "");
-			ra_printf(OUTLINE_COLOR, "|");
+			ra_printf(BORDER_COLOR, "|");
 		}
 	}
-	ra_printf(OUTLINE_COLOR, "\n+");
+	ra_printf(BORDER_COLOR, "\n+");
 	for (j=0; j<ra_csv_cols(csv); ++j) {
 		n = widths[j] + 2;
 		for (i=0; i<n; ++i) {
-			ra_printf(OUTLINE_COLOR, "-");
+			ra_printf(BORDER_COLOR, "-");
 		}
-		ra_printf(OUTLINE_COLOR, "+");
+		ra_printf(BORDER_COLOR, "+");
 	}
-	ra_printf(OUTLINE_COLOR, "\n");
+	ra_printf(BORDER_COLOR, "\n");
 	RA_FREE(widths);
 	return 0;
 }

@@ -1,7 +1,5 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
-#include "core/ra_core.h"
-
 #include "ra_lexer.h"
 
 int
@@ -9,32 +7,31 @@ main(int argc, char *argv[])
 {
 	ra_lexer_t lexer;
 	const char *s;
-	uint64_t i;
-
-	(void)argc;
-	(void)argv;
+	ra_csv_t csv;
 
 	ra_core_init();
-	ra_core_test();
-	return 0;
-
-	if (!(s = ra_file_string_read("test"))) {
+	if (2 != argc) {
+		fprintf(stderr, "usage: radium pathname\n");
 		return -1;
 	}
-	if (!(lexer = ra_lexer_open(s))) {
+	if (!(lexer = ra_lexer_open(argv[1]))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(s = ra_lexer_csv(lexer))) {
+		ra_lexer_close(lexer);
+		RA_TRACE("^");
+		return -1;
+	}
+	if (!(csv = ra_csv_open(s)) || ra_csv_print(csv)) {
+		ra_lexer_close(lexer);
+		ra_csv_close(csv);
 		RA_FREE(s);
+		RA_TRACE("^");
 		return -1;
 	}
-	for (i=0; i<ra_lexer_items(lexer); ++i) {
-		const struct ra_lexer_token *token;
-		token = ra_lexer_lookup(lexer, i);
-		printf("%2d %2u %2u %s\n",
-		       token->op,
-		       token->lineno,
-		       token->column,
-		       token->s);
-	}
-	RA_FREE(s);
 	ra_lexer_close(lexer);
+	ra_csv_close(csv);
+	RA_FREE(s);
 	return 0;
 }
