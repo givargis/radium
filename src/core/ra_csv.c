@@ -9,10 +9,8 @@ struct ra_csv {
 	const char **cells;
 };
 
-typedef void (*populate_t)(struct ra_csv *csv, uint64_t r, uint64_t c,char *s);
-
 static void
-_populate_(struct ra_csv *csv, uint64_t r, uint64_t c, char *s)
+populate(struct ra_csv *csv, uint64_t r, uint64_t c, char *s)
 {
 	if (csv->cells) {
 		while ('\n' == (*s)) {
@@ -27,7 +25,7 @@ _populate_(struct ra_csv *csv, uint64_t r, uint64_t c, char *s)
 }
 
 static void
-parse(struct ra_csv *csv, populate_t populate)
+parse(struct ra_csv *csv)
 {
 	int quote, field;
 	uint64_t j, c, r;
@@ -50,7 +48,7 @@ parse(struct ra_csv *csv, populate_t populate)
 		}
 		else if (!quote) {
 			if (',' == csv->buf[i]) {
-				if (populate) {
+				if (csv->cells) {
 					csv->buf[i] = '\0';
 					populate(csv, r, j, p);
 					p = &csv->buf[i + 1];
@@ -60,7 +58,7 @@ parse(struct ra_csv *csv, populate_t populate)
 			}
 			else if ('\n' == csv->buf[i]) {
 				if (field || j) {
-					if (populate) {
+					if (csv->cells) {
 						csv->buf[i] = '\0';
 						populate(csv, r, j, p);
 						p = &csv->buf[i + 1];
@@ -84,7 +82,7 @@ parse(struct ra_csv *csv, populate_t populate)
 		}
 	}
 	if (field || j) {
-		if (populate) {
+		if (csv->cells) {
 			csv->buf[i] = '\0';
 			populate(csv, r, j, p);
 		}
@@ -114,7 +112,7 @@ ra_csv_open(const char *s)
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	parse(csv, NULL);
+	parse(csv);
 	if (csv->n_cols && csv->n_rows) {
 		n = csv->n_rows * csv->n_cols * sizeof (csv->cells[0]);
 		if (!(csv->cells = malloc(n))) {
@@ -123,7 +121,7 @@ ra_csv_open(const char *s)
 			return NULL;
 		}
 		memset(csv->cells, 0, n);
-		parse(csv, _populate_);
+		parse(csv);
 	}
 	return csv;
 }
