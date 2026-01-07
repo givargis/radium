@@ -502,7 +502,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 			op = token->op - RA_LEXER_OPERATOR_ - 1;
 			ra_sprintf(buf,
 				   sizeof (buf),
-				   "%d,%d,%s,",
+				   "%d,%d,\"%s\",",
 				   token->lineno,
 				   token->column,
 				   OPERATORS[op]);
@@ -512,7 +512,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 			op = token->op - RA_LEXER_KEYWORD_ - 1;
 			ra_sprintf(buf,
 				   sizeof (buf),
-				   "%d,%d,%s,",
+				   "%d,%d,\"%s\",",
 				   token->lineno,
 				   token->column,
 				   KEYWORDS[op]);
@@ -536,7 +536,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 		else if (RA_LEXER_STRING == token->op) {
 			ra_sprintf(buf,
 				   sizeof (buf),
-				   "%d,%d,STRING,%s",
+				   "%d,%d,STRING,[%s]",
 				   token->lineno,
 				   token->column,
 				   token->u.s);

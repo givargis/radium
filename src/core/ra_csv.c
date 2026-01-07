@@ -9,65 +9,91 @@ struct ra_csv {
 	const char **cells;
 };
 
-static void
-survey(struct ra_csv *csv)
-{
-	uint64_t c, r, i, j, n;
+typedef void (*populate_t)(struct ra_csv *csv, uint64_t r, uint64_t c,char *s);
 
-	n = strlen(csv->buf);
-	for (i=j=c=r=0; i<n; ++i) {
-		++j;
-		if (',' == csv->buf[i]) {
-			++c;
+static void
+_populate_(struct ra_csv *csv, uint64_t r, uint64_t c, char *s)
+{
+	if (csv->cells) {
+		while ('\n' == (*s)) {
+			++s;
 		}
-		else if ('\r' == csv->buf[i]) {
-			/* ignore */
+		if (('"' == s[0]) && ('"' == s[strlen(s) - 1])) {
+			++s;
+			s[strlen(s) - 1] = '\0';
 		}
-		else if ('\n' == csv->buf[i]) {
-			++c;
-			++r;
-			csv->n_cols = (csv->n_cols < c) ? c : csv->n_cols;
-			c = 0;
-			j = 0;
-		}
+		csv->cells[r * csv->n_cols + c] = s;
 	}
-	if (j) {
-		++c;
-		++r;
-		csv->n_cols = (csv->n_cols < c) ? c : csv->n_cols;
-	}
-	csv->n_rows = r;
 }
 
 static void
-parse(struct ra_csv *csv)
+parse(struct ra_csv *csv, populate_t populate)
 {
-	uint64_t c, r, i, j, n;
-	const char *p;
+	int quote, field;
+	uint64_t j, c, r;
+	size_t i, n;
+	char *p;
 
 	p = csv->buf;
+	j = c = r = 0;
+	quote = field = 0;
 	n = strlen(csv->buf);
-	for (i=j=r=c=0; i<n; ++i) {
+	for (i=0; i<n; ++i) {
+		if (csv->buf[i] == '"') {
+			if (quote && ('"' == csv->buf[i + 1])) {
+				++i;
+			}
+			else {
+				quote = !quote;
+				field = 1;
+			}
+		}
+		else if (!quote) {
+			if (',' == csv->buf[i]) {
+				if (populate) {
+					csv->buf[i] = '\0';
+					populate(csv, r, j, p);
+					p = &csv->buf[i + 1];
+				}
+				++j;
+				field = 0;
+			}
+			else if ('\n' == csv->buf[i]) {
+				if (field || j) {
+					if (populate) {
+						csv->buf[i] = '\0';
+						populate(csv, r, j, p);
+						p = &csv->buf[i + 1];
+					}
+					++j;
+				}
+				++r;
+				c = RA_MAX(c, j);
+				j = 0;
+				field = 0;
+			}
+			else if ('\r' == csv->buf[i]) {
+				/* ignore */
+			}
+			else {
+				field = 1;
+			}
+		}
+		else {
+			field = 1;
+		}
+	}
+	if (field || j) {
+		if (populate) {
+			csv->buf[i] = '\0';
+			populate(csv, r, j, p);
+		}
 		++j;
-		if (',' == csv->buf[i]) {
-			csv->buf[i] = '\0';
-			csv->cells[r * csv->n_cols + c++] = p;
-			p = &csv->buf[i + 1];
-		}
-		else if ('\r' == csv->buf[i]) {
-			csv->buf[i] = '\0';
-		}
-		else if ('\n' == csv->buf[i]) {
-			csv->buf[i] = '\0';
-			csv->cells[r++ * csv->n_cols + c++] = p;
-			p = &csv->buf[i + 1];
-			c = 0;
-			j = 0;
-		}
+		++r;
+		c = RA_MAX(c, j);
 	}
-	if (j) {
-		csv->cells[r * csv->n_cols + c] = p;
-	}
+	csv->n_rows = r;
+	csv->n_cols = c;
 }
 
 ra_csv_t
@@ -88,7 +114,7 @@ ra_csv_open(const char *s)
 		RA_TRACE("out of memory");
 		return NULL;
 	}
-	survey(csv);
+	parse(csv, NULL);
 	if (csv->n_cols && csv->n_rows) {
 		n = csv->n_rows * csv->n_cols * sizeof (csv->cells[0]);
 		if (!(csv->cells = malloc(n))) {
@@ -97,7 +123,7 @@ ra_csv_open(const char *s)
 			return NULL;
 		}
 		memset(csv->cells, 0, n);
-		parse(csv);
+		parse(csv, _populate_);
 	}
 	return csv;
 }
@@ -315,6 +341,41 @@ ra_csv_test(void)
 	    strcmp("abc", ra_csv_cell(csv, 0, 0)) ||
 	    strcmp(""   , ra_csv_cell(csv, 0, 1)) ||
 	    strcmp("xyz", ra_csv_cell(csv, 0, 2))) {
+		ra_csv_close(csv);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_csv_close(csv);
+
+	/* quote */
+
+	ra_sprintf(buf, sizeof (buf), "abc,\"x,y\"\n");
+	if (!(csv = ra_csv_open(buf))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	if ((1 != ra_csv_rows(csv)) ||
+	    (2 != ra_csv_cols(csv)) ||
+	    strcmp("abc", ra_csv_cell(csv, 0, 0)) ||
+	    strcmp("x,y", ra_csv_cell(csv, 0, 1))) {
+		ra_csv_close(csv);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+	ra_csv_close(csv);
+
+	/* quote within quote */
+
+	ra_sprintf(buf, sizeof (buf), "abc,\"x,y\"\n\"\"x\"\"");
+	if (!(csv = ra_csv_open(buf))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	if ((2 != ra_csv_rows(csv)) ||
+	    (2 != ra_csv_cols(csv)) ||
+	    strcmp("abc", ra_csv_cell(csv, 0, 0)) ||
+	    strcmp("x,y", ra_csv_cell(csv, 0, 1)) ||
+	    strcmp("\"x\"", ra_csv_cell(csv, 1, 0))) {
 		ra_csv_close(csv);
 		RA_TRACE("integrity failure detected");
 		return -1;

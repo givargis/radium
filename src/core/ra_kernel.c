@@ -51,6 +51,7 @@ ra_printf(ra_color_t color, const char *format, ...)
 		printf("\033[%dm", color / 2 + 30);
 		if (0 != (color % 2)) {
 			printf("\033[1m");
+			fflush(stdout);
 		}
 	}
 	va_start(ap, format);
@@ -58,6 +59,7 @@ ra_printf(ra_color_t color, const char *format, ...)
 	va_end(ap);
 	if (term) {
 		printf("\033[0m");
+		fflush(stdout);
 	}
 }
 
