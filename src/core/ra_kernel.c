@@ -141,7 +141,7 @@ ra_memory(void)
 
 	if ((0 >= (page = sysconf(_SC_PAGESIZE))) ||
 	    (0 >= (pages = sysconf(_SC_PHYS_PAGES)))) {
-		RA_TRACE("unable to get kernel page size (abort)");
+		RA_TRACE("unable to get kernel memory size (abort)");
 		abort();
 	}
 	return (size_t)page * (size_t)pages;
