@@ -51,6 +51,19 @@ const char * const OPERATORS[] = {
 	"(",  ")",  ",",   ";",  "...",	"`",  "@",   "#",   "$",  "\\"
 };
 
+static int
+hex2int(int c)
+{
+	c = tolower(c);
+	if (('0' <= c) && ('9' >= c)) {
+		return c - '0';
+	}
+	if (('a' <= c) && ('f' >= c)) {
+		return 15 + c - 'f';
+	}
+	return -1;
+}
+
 static const char *
 strdupl(const char *b, const char *e)
 {
@@ -191,8 +204,8 @@ process_comment(struct ra_lexer *lexer, const char *b)
 			return (char *)(e + 2);
 		}
 		else {
-			lexer->column += 1;
 			++e;
+			++lexer->column;
 		}
 	}
 	ERROR(lexer, "unterminated /* comment", "");
@@ -211,11 +224,11 @@ process_string(struct ra_lexer *lexer, const char *b)
 	e = b;
 	quote = (*b);
 	while ((*e) && ('\n' != (*e))) {
-		lexer->column += 1;
 		++e;
+		++lexer->column;
 		if (quote == (*e)) {
-			lexer->column += 1;
 			++e;
+			++lexer->column;
 			if (!(s = strdupl(b, e)) ||
 			    !(token = ra_vector_append(lexer->tokens, TLEN))) {
 				RA_FREE(s);
@@ -229,8 +242,8 @@ process_string(struct ra_lexer *lexer, const char *b)
 			return (char *)e;
 		}
 		if ('\\' == (*e)) {
-			lexer->column += 1;
 			++e;
+			++lexer->column;
 			if (!(*e)) {
 				ERROR(lexer, "missing escape character", "");
 				return NULL;
@@ -246,20 +259,86 @@ process_numeric(struct ra_lexer *lexer, const char *b)
 {
 	struct ra_lexer_token *token;
 	const char *s, *e;
+	ra_bigint_t i;
+	double r;
+
+	/* hexadecimal integer */
 
 	e = b;
-	while ((*e) && (('.' == (*e) || isdigit((unsigned char)(*e))))) {
+	if (('0' == e[0]) && ('X' == toupper((unsigned char)e[1]))) {
+		e += 2;
+		lexer->column += 2;
+		while (0 <= hex2int((unsigned char)(*e))) {
+			++e;
+			++lexer->column;
+		}
+		if (2 >= (e - b)) {
+			ERROR(lexer, "invalid integer constant", "");
+			return NULL;
+		}
+		if (!(s = strdupl(b, e)) || !(i = ra_bigint_string(s))) {
+			RA_FREE(s);
+			RA_TRACE("^");
+			return NULL;
+		}
+		RA_FREE(s);
+		if (!(token = ra_vector_append(lexer->tokens, TLEN))) {
+			ra_bigint_free(i);
+			RA_TRACE("^");
+			return NULL;
+		}
+		token->op = RA_LEXER_INT;
+		token->u.i = i;
+		token->lineno = lexer->lineno;
+		token->column = lexer->column - (unsigned)(e - b);
+		return (char *)e;
+	}
+
+	/* real */
+
+	r = strtod(b, (char **)&e);
+	if ((EINVAL == errno) || (ERANGE == errno)) {
+		ERROR(lexer, "invalid real constant", "");
+		return NULL;
+	}
+	for (s=b; s<e; ++s) {
+		if (!isdigit((unsigned char)(*s))) {
+			break;
+		}
+	}
+	if (s < e) {
+		lexer->column += (unsigned)(e - b);
+		if (!(token = ra_vector_append(lexer->tokens, TLEN))) {
+			RA_TRACE("^");
+			return NULL;
+		}
+		token->op = RA_LEXER_REAL;
+		token->u.r = r;
+		token->lineno = lexer->lineno;
+		token->column = lexer->column - (unsigned)(e - b);
+		return (char *)e;
+	}
+
+	/* decimal integer */
+
+	e = b;
+	while (isdigit((unsigned char)(*e))) {
 		++e;
 		++lexer->column;
 	}
-	if (!(s = strdupl(b, e)) ||
-	    !(token = ra_vector_append(lexer->tokens, TLEN))) {
+	if (!(s = strdupl(b, e)) || !(i = ra_bigint_string(s))) {
 		RA_FREE(s);
 		RA_TRACE("^");
 		return NULL;
 	}
-	token->op = RA_LEXER_REAL;
-	token->u.r = 1.2;
+	RA_FREE(s);
+	if (!(token = ra_vector_append(lexer->tokens, TLEN))) {
+		ra_bigint_free(i);
+		RA_TRACE("^");
+		return NULL;
+	}
+	token->op = RA_LEXER_INT;
+	token->u.i = i;
 	token->lineno = lexer->lineno;
 	token->column = lexer->column - (unsigned)(e - b);
 	return (char *)e;
@@ -369,8 +448,8 @@ tokenize(struct ra_lexer *lexer)
 			b = e;
 		}
 		else {
-			lexer->column += 1;
 			++e;
+			++lexer->column;
 		}
 	}
 	if (process(lexer, b, e)) {
@@ -472,7 +551,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 {
 	const struct ra_lexer_token *token;
 	const char *s, *pathname;
-	char buf[256];
+	char buf[99];
 	FILE *file;
 	uint64_t i;
 	int op;
@@ -518,36 +597,68 @@ ra_lexer_csv(ra_lexer_t lexer)
 				   KEYWORDS[op]);
 		}
 		else if (RA_LEXER_INT == token->op) {
+			if (!(s = ra_bigint_print(token->u.i))) {
+				fclose(file);
+				ra_unlink(pathname);
+				RA_FREE(pathname);
+				RA_TRACE("^");
+			}
+			if (44 < strlen(s)) {
+				((char *)s)[41] = '.';
+				((char *)s)[42] = '.';
+				((char *)s)[43] = '.';
+				((char *)s)[44] = '\0';
+			}
 			ra_sprintf(buf,
 				   sizeof (buf),
-				   "%d,%d,INT,%ld",
+				   "%d,%d,INT,%s",
 				   token->lineno,
 				   token->column,
-				   token->u.i);
+				   s);
+			RA_FREE(s);
 		}
 		else if (RA_LEXER_REAL == token->op) {
 			ra_sprintf(buf,
 				   sizeof (buf),
-				   "%d,%d,REAL,%Lf",
+				   "%d,%d,REAL,%f",
 				   token->lineno,
 				   token->column,
 				   token->u.r);
 		}
-		else if (RA_LEXER_STRING == token->op) {
+		else if ((RA_LEXER_STRING == token->op) ||
+			 (RA_LEXER_IDENTIFIER == token->op)) {
+			if (RA_LEXER_STRING == token->op) {
+				if (!(s = strdup(token->u.s + 1))) {
+					fclose(file);
+					ra_unlink(pathname);
+					RA_FREE(pathname);
+					RA_TRACE("out of memory");
+				}
+				((char *)s)[strlen(s) - 1] = '\0';
+			}
+			else {
+				if (!(s = strdup(token->u.s))) {
+					fclose(file);
+					ra_unlink(pathname);
+					RA_FREE(pathname);
+					RA_TRACE("out of memory");
+				}
+			}
+			if (44 < strlen(s)) {
+				((char *)s)[41] = '.';
+				((char *)s)[42] = '.';
+				((char *)s)[43] = '.';
+				((char *)s)[44] = '\0';
+			}
 			ra_sprintf(buf,
 				   sizeof (buf),
-				   "%d,%d,STRING,[%s]",
+				   "%d,%d,%s,%s",
 				   token->lineno,
 				   token->column,
-				   token->u.s);
-		}
-		else if (RA_LEXER_IDENTIFIER == token->op) {
-			ra_sprintf(buf,
-				   sizeof (buf),
-				   "%d,%d,IDENTIFIER,%s",
-				   token->lineno,
-				   token->column,
-				   token->u.s);
+				   RA_LEXER_STRING == token->op ?
+				   "STRING" : "IDENTIFIER",
+				   s);
+			RA_FREE(s);
 		}
 		else {
 			assert( 0 );

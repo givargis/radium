@@ -109,8 +109,8 @@ struct ra_lexer_token {
 	unsigned lineno;
 	unsigned column;
 	union {
-		long i;
-		long double r;
+		double r;
+		ra_bigint_t i;
 		const char *s;
 	} u;
 };
