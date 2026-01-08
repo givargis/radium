@@ -7,19 +7,17 @@
 
 #define TLEN ( sizeof (struct ra_lexer_token) )
 
-#define ERROR(l, f, a)				\
-	do {					\
-		ra_printf(RA_COLOR_RED_BOLD,	\
-			  "error: ");		\
-		ra_printf(RA_COLOR_BLACK,	\
-			  "%s:%u:%u: "		\
-			  f "\n",		\
-			  (l)->pathname,	\
-			  (l)->lineno,		\
-			  (l)->column,		\
-			  (a));			\
-		RA_TRACE("syntax error");	\
-	}					\
+#define ERROR(l, f, a)						\
+	do {							\
+		ra_printf(RA_COLOR_RED_BOLD, "error: ");	\
+		ra_printf(RA_COLOR_BLACK_BOLD,			\
+			  "%s:%u:%u: " f "\n",			\
+			  (l)->pathname,			\
+			  (l)->lineno,				\
+			  (l)->column,				\
+			  (a));					\
+		RA_TRACE("lexer error");			\
+	}							\
 	while (0)
 
 struct ra_lexer {
@@ -82,7 +80,7 @@ strdupl(const char *b, const char *e)
 	return s;
 }
 
-static int
+static int /* BOOL */
 is_identifier(const char *b, const char *e)
 {
 	assert( b && (b < e) );
@@ -456,6 +454,13 @@ tokenize(struct ra_lexer *lexer)
 		RA_TRACE("^");
 		return -1;
 	}
+	if (!(token = ra_vector_append(lexer->tokens, TLEN))) {
+		RA_TRACE("^");
+		return -1;
+	}
+	token->op = RA_LEXER_END;
+	token->lineno = lexer->lineno;
+	token->column = lexer->column;
 	return 0;
 }
 
@@ -486,8 +491,8 @@ ra_lexer_open(const char *pathname)
 		return NULL;
 	}
 	if (!(s = ra_file_string_read(pathname))) {
+		ERROR(lexer, "unable to read %s", pathname);
 		ra_lexer_close(lexer);
-		RA_TRACE("^");
 		return NULL;
 	}
 	if (!(lexer->s = malloc(strlen(s) + PAD))) {
@@ -659,6 +664,13 @@ ra_lexer_csv(ra_lexer_t lexer)
 				   "STRING" : "IDENTIFIER",
 				   s);
 			RA_FREE(s);
+		}
+		else if (RA_LEXER_END == token->op) {
+			ra_sprintf(buf,
+				   sizeof (buf),
+				   "%d,%d,END,",
+				   token->lineno,
+				   token->column);
 		}
 		else {
 			assert( 0 );

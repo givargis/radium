@@ -35,6 +35,7 @@
 
 #define RA_TRACE(s)				\
 	do {					\
+		if (!ra_trace_enabled) break;	\
 		ra_printf(RA_COLOR_YELLOW_BOLD,	\
 			  "trace: ");		\
 		ra_printf(RA_COLOR_BLACK,	\
@@ -62,6 +63,8 @@ typedef enum {
 	RA_COLOR_GRAY,
 	RA_COLOR_GRAY_BOLD
 } ra_color_t;
+
+extern int ra_trace_enabled;
 
 void ra_kernel_init(void);
 

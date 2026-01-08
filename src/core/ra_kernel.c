@@ -6,6 +6,8 @@
 #include "ra_hash.h"
 #include "ra_kernel.h"
 
+int ra_trace_enabled;
+
 void
 ra_kernel_init(void)
 {
