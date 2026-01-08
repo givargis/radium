@@ -38,7 +38,7 @@
 		if (!ra_trace_enabled) break;	\
 		ra_printf(RA_COLOR_YELLOW_BOLD,	\
 			  "trace: ");		\
-		ra_printf(RA_COLOR_BLACK,	\
+		ra_printf(RA_COLOR_BLACK_BOLD,	\
 			  "%s:%d: %s\n",	\
 			  __FILE__,		\
 			  __LINE__,		\
