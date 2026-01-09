@@ -12,8 +12,8 @@
 			ra_printf(RA_COLOR_BLACK_BOLD,			\
 				  "%s:%u:%u: " f "\n",			\
 				  (p)->pathname,			\
-				  next((p))->lineno,			\
-				  next((p))->column,			\
+				  current((p))->lineno,			\
+				  current((p))->column,			\
 				  (a));					\
 			RA_TRACE("parser error");			\
 		}							\
@@ -28,7 +28,7 @@
 		}							\
 		(d)->id = ++(p)->id;					\
 		(d)->op = (o);						\
-		(d)->token = next((p));					\
+		(d)->token = current((p));				\
 	}								\
 	while (0)
 
@@ -43,12 +43,12 @@ struct ra_parser {
 };
 
 static const struct ra_lexer_token *
-next(const struct ra_parser *parser)
+current(const struct ra_parser *parser)
 {
 	if (!parser->stop && (parser->i < parser->n)) {
 		return ra_lexer_lookup(parser->lexer, parser->i);
 	}
-	return ra_lexer_lookup(parser->lexer, parser->n - 1);
+	return ra_lexer_lookup(parser->lexer, parser->n - 1); /*RA_LEXER_END*/
 }
 
 static int /* BOOL */
@@ -56,7 +56,7 @@ match(const struct ra_parser *parser, int op)
 {
 	const struct ra_lexer_token *token;
 
-	if ((token = next(parser)) && (op == token->op)) {
+	if ((token = current(parser)) && (op == token->op)) {
 		return 1;
 	}
 	return 0;
@@ -178,11 +178,10 @@ expr_primary(struct ra_parser *parser)
 /**
  * (E2)
  *
- * expr_postfix_ : { '[' expr ']' expr_postfix_ }
- *	         | { '(' expr_list ')' expr_postfix_ }
- *	         | { '.' IDENTIFIER expr_postfix_ }
- *	         | { '++' expr_postfix_ }
- *	         | { '--' expr_postfix_ }
+ * expr_postfix_ : { '[' expr ']' }
+ *	         | { '(' expr_list ')' }
+ *	         | { '.' IDENTIFIER }
+ *	         | { [ '++' '--' ] }
  *               | <e>
  *
  * expr_postfix : expr_primary expr_postfix_
@@ -230,7 +229,7 @@ expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
 				ERROR(parser, "missing identifier", "");
 				return NULL;
 			}
-			node->token = next(parser);
+			node->token = current(parser);
 			forward(parser);
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_INC)) {
@@ -246,10 +245,7 @@ expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
 		else {
 			break;
 		}
-		if (!(node = expr_postfix_(parser, node))) {
-			RA_TRACE("^");
-			return NULL;
-		}
+		left = node;
 	}
 	return node;
 
@@ -623,7 +619,6 @@ expr_relational(struct ra_parser *parser)
 static struct ra_parser_node *
 expr_equality_(struct ra_parser *parser, struct ra_parser_node *left)
 {
-	const char * const TBL[] = { "==", "!=", "<=>" };
 	struct ra_parser_node *node;
 
 	node = left;
@@ -643,8 +638,8 @@ expr_equality_(struct ra_parser *parser, struct ra_parser_node *left)
 		}
 		if (!(node->right = expr_relational(parser))) {
 			ERROR(parser,
-			      "invalid %s operand",
-			      TBL[node->op - RA_PARSER_EXPR_EQ]);
+			      "invalid '%s' operand",
+			      (node->op == RA_PARSER_EXPR_EQ) ? "==" : "!=");
 			return NULL;
 		}
 		if (!(node = expr_equality_(parser, node))) {
@@ -866,7 +861,6 @@ expr_logic_and(struct ra_parser *parser)
 static struct ra_parser_node *
 expr_logic_or_(struct ra_parser *parser, struct ra_parser_node *left)
 {
-	const char * const TBL[] = { "^^", "||" };
 	struct ra_parser_node *node;
 
 	node = left;
@@ -880,9 +874,7 @@ expr_logic_or_(struct ra_parser *parser, struct ra_parser_node *left)
 			break;
 		}
 		if (!(node->right = expr_logic_and(parser))) {
-			ERROR(parser,
-			      "invalid %s operand",
-			      TBL[node->op - RA_PARSER_EXPR_XOR]);
+			ERROR(parser, "invalid '||' operand", "");
 			return NULL;
 		}
 		if (!(node = expr_logic_or_(parser, node))) {
@@ -980,7 +972,11 @@ ra_parser_open(const char *pathname)
 		RA_TRACE("^");
 		return NULL;
 	}
-	parser->n = ra_lexer_items(parser->lexer);
+	if (1 >= (parser->n = ra_lexer_items(parser->lexer))) {
+		ERROR(parser, "empty translation unit", "");
+		ra_parser_close(parser);
+		return NULL;
+	}
 	if (!(parser->root = top(parser))) {
 		ra_parser_close(parser);
 		RA_TRACE("^");
@@ -1012,6 +1008,7 @@ static void
 print(const struct ra_parser_node *node)
 {
 	char buf[3][32];
+	const char *s;
 
 	if (node) {
 		print(node->left);
@@ -1031,12 +1028,18 @@ print(const struct ra_parser_node *node)
 			   "%d",
 			   node->cond ? node->cond->id : 0);
 
-		printf("%2d %2s %2s %2s %s\n",
+		s = "";
+		if (RA_PARSER_EXPR_IDENTIFIER == node->op) {
+			s = node->token->u.s;
+		}
+
+		printf("%2d %2s %2s %2s %s %s\n",
 		       node->id,
 		       node->left ? buf[0] : "-",
 		       node->right ? buf[1] : "-",
 		       node->cond ? buf[2] : "-",
-		       RA_PARSER_STR[node->op]);
+		       RA_PARSER_STR[node->op],
+		       s);
 	}
 }
 

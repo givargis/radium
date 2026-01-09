@@ -607,6 +607,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 				ra_unlink(pathname);
 				RA_FREE(pathname);
 				RA_TRACE("^");
+				return NULL;
 			}
 			if (44 < strlen(s)) {
 				((char *)s)[41] = '.';
@@ -638,6 +639,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 					ra_unlink(pathname);
 					RA_FREE(pathname);
 					RA_TRACE("out of memory");
+					return NULL;
 				}
 				((char *)s)[strlen(s) - 1] = '\0';
 			}
@@ -647,6 +649,7 @@ ra_lexer_csv(ra_lexer_t lexer)
 					ra_unlink(pathname);
 					RA_FREE(pathname);
 					RA_TRACE("out of memory");
+					return NULL;
 				}
 			}
 			if (44 < strlen(s)) {
