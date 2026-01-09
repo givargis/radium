@@ -71,10 +71,10 @@ forward(struct ra_parser *parser)
 }
 
 /**============================================================================
+ * (E0)  expr_list
  * (E1)  expr_primary
  * (E2)  expr_postfix
  * (E3)  expr_unary
- * (E3)  expr_cast
  * (E4)  expr_multiplicative
  * (E5)  expr_additive
  * (E6)  expr_shift
@@ -84,13 +84,48 @@ forward(struct ra_parser *parser)
  * (E10) expr_xor
  * (E11) expr_or
  * (E12) expr_logic_and
- * (E13) expr_logic_xor_or
- * (E??) expr_list
+ * (E13) expr_logic_or
  * (E14) expr
  *===========================================================================*/
 
 static struct ra_parser_node *expr(struct ra_parser *parser);
-static struct ra_parser_node *expr_list(struct ra_parser *parser);
+
+/**
+ * (E0)
+ *
+ * expr_list : expr { ',' expr }
+ */
+
+static struct ra_parser_node *
+expr_list(struct ra_parser *parser)
+{
+	struct ra_parser_node *node, *node_, *head, *tail;
+	int mark;
+
+	mark = 0;
+	head = tail = NULL;
+	while ((node_ = expr(parser))) {
+		MKN(parser, node, RA_PARSER_EXPR_LIST);
+		node->cond = node_;
+		if (tail) {
+			tail->right = node;
+			tail = node;
+		}
+		else {
+			head = node;
+			tail = node;
+		}
+		if (!(mark = match(parser, RA_LEXER_OPERATOR_COMMA))) {
+			break;
+		}
+		forward(parser);
+	}
+	if (mark) {
+		ERROR(parser, "dangling ','", "");
+		return NULL;
+	}
+	return head;
+}
 
 /**
  * (E1)
@@ -146,7 +181,6 @@ expr_primary(struct ra_parser *parser)
  * expr_postfix_ : { '[' expr ']' expr_postfix_ }
  *	         | { '(' expr_list ')' expr_postfix_ }
  *	         | { '.' IDENTIFIER expr_postfix_ }
- *	         | { '->' IDENTIFIER expr_postfix_ }
  *	         | { '++' expr_postfix_ }
  *	         | { '--' expr_postfix_ }
  *               | <e>
@@ -199,17 +233,6 @@ expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
 			node->token = next(parser);
 			forward(parser);
 		}
-		else if (match(parser, RA_LEXER_OPERATOR_ARROW)) {
-			MKN(parser, node, RA_PARSER_EXPR_PFIELD);
-			node->left = left;
-			forward(parser);
-			if (!match(parser, RA_LEXER_IDENTIFIER)) {
-				ERROR(parser, "missing identifier", "");
-				return NULL;
-			}
-			node->token = next(parser);
-			forward(parser);
-		}
 		else if (match(parser, RA_LEXER_OPERATOR_INC)) {
 			MKN(parser, node, RA_PARSER_EXPR_INC);
 			node->left = left;
@@ -243,15 +266,10 @@ expr_postfix(struct ra_parser *parser)
 	return expr_postfix_(parser, node);
 }
 
-#if(0)
-
 /**
  * (E3)
  *
- * expr_unary : [ '&' '*' '+' '-' '~' '!' ] expr_cast
- *            | [ '++' '--' ] expr_unary
- *            | 'sizeof' expr_unary
- *            | 'sizeof' '(' type_name ')'
+ * expr_unary : [ '+' '-' '~' '!' '++' '--' ] expr_unary
  *            | expr_postfix
  */
 
@@ -263,7 +281,7 @@ expr_unary(struct ra_parser *parser)
 	node = NULL;
 	if (match(parser, RA_LEXER_OPERATOR_ADD)) {
 		forward(parser);
-		if (!(node = expr_cast(parser))) {
+		if (!(node = expr_unary(parser))) {
 			ERROR(parser, "invalid unary '+' operand", "");
 			return NULL;
 		}
@@ -271,7 +289,7 @@ expr_unary(struct ra_parser *parser)
 	else if (match(parser, RA_LEXER_OPERATOR_SUB)) {
 		MKN(parser, node, RA_PARSER_EXPR_NEG);
 		forward(parser);
-		if (!(node->right = expr_cast(parser))) {
+		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid unary '-' operand", "");
 			return NULL;
 		}
@@ -279,7 +297,7 @@ expr_unary(struct ra_parser *parser)
 	else if (match(parser, RA_LEXER_OPERATOR_NOT)) {
 		MKN(parser, node, RA_PARSER_EXPR_NOT);
 		forward(parser);
-		if (!(node->right = expr_cast(parser))) {
+		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid '~' operand", "");
 			return NULL;
 		}
@@ -287,8 +305,24 @@ expr_unary(struct ra_parser *parser)
 	else if (match(parser, RA_LEXER_OPERATOR_LOGIC_NOT)) {
 		MKN(parser, node, RA_PARSER_EXPR_LOGIC_NOT);
 		forward(parser);
-		if (!(node->right = expr_cast(parser))) {
+		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid '!' operand", "");
+			return NULL;
+		}
+	}
+	else if (match(parser, RA_LEXER_OPERATOR_INC)) {
+		MKN(parser, node, RA_PARSER_EXPR_INC);
+		forward(parser);
+		if (!(node->right = expr_unary(parser))) {
+			ERROR(parser, "invalid '++' operand", "");
+			return NULL;
+		}
+	}
+	else if (match(parser, RA_LEXER_OPERATOR_DEC)) {
+		MKN(parser, node, RA_PARSER_EXPR_DEC);
+		forward(parser);
+		if (!(node->right = expr_unary(parser))) {
+			ERROR(parser, "invalid '--' operand", "");
 			return NULL;
 		}
 	}
@@ -299,50 +333,16 @@ expr_unary(struct ra_parser *parser)
 }
 
 /**
- * (E3)
- *
- * expr_cast : expr_unary
- *           | '(' decl_type ')' expr_cast
- */
-
-struct ra_parser_node *
-expr_cast(struct ra_parser *parser)
-{
-	struct ra_parser_node *node;
-
-	if (match(parser, RA_LEXER_OPERATOR_OPEN_PARENTH)) {
-		MKN(parser, node, RA_PARSER_EXPR_CAST);
-		forward(parser);
-		if (!(node->left = decl_type(parser))) {
-			reverse(parser);
-			return expr_unary(parser);
-		}
-		if (!match(parser, RA_LEXER_OPERATOR_CLOSE_PARENTH)) {
-			ERROR(parser, "missing ')'", "");
-			return NULL;
-		}
-		forward(parser);
-		if (!(node->right = expr_cast(parser))) {
-			ERROR(parser, "invalid cast expression", "");
-			return NULL;
-		}
-		return node;
-	}
-	return expr_unary(parser);
-}
-
-/**
  * (E4)
  *
- * expr_multiplicative_ : { [ '*' '/' '%' ] expr_cast expr_multiplicative_ }
+ * expr_multiplicative_ : { [ '*' '/' '%' ] expr_unary expr_multiplicative_ }
  *                      | <e>
  *
- * expr_multiplicative : expr_cast expr_multiplicative_
+ * expr_multiplicative : expr_unary expr_multiplicative_
  */
 
 static struct ra_parser_node *
-expr_multiplicative_(struct ra_parser *parser,
-		     struct ra_parser_node *left)
+expr_multiplicative_(struct ra_parser *parser, struct ra_parser_node *left)
 {
 	struct ra_parser_node *node;
 
@@ -352,12 +352,12 @@ expr_multiplicative_(struct ra_parser *parser,
 			MKN(parser, node, RA_PARSER_EXPR_MUL);
 			node->left = left;
 			forward(parser);
-			if (!(node->right = expr_cast(parser))) {
+			if (!(node->right = expr_unary(parser))) {
 				ERROR(parser, "invalid '*' operand", "");
 				return NULL;
 			}
 			if (!(node = expr_multiplicative_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -365,12 +365,12 @@ expr_multiplicative_(struct ra_parser *parser,
 			MKN(parser, node, RA_PARSER_EXPR_DIV);
 			node->left = left;
 			forward(parser);
-			if (!(node->right = expr_cast(parser))) {
+			if (!(node->right = expr_unary(parser))) {
 				ERROR(parser, "invalid '/' operand", "");
 				return NULL;
 			}
 			if (!(node = expr_multiplicative_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -378,12 +378,12 @@ expr_multiplicative_(struct ra_parser *parser,
 			MKN(parser, node, RA_PARSER_EXPR_MOD);
 			node->left = left;
 			forward(parser);
-			if (!(node->right = expr_cast(parser))) {
+			if (!(node->right = expr_unary(parser))) {
 				ERROR(parser, "invalid '%%' operand", "");
 				return NULL;
 			}
 			if (!(node = expr_multiplicative_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -399,7 +399,7 @@ expr_multiplicative(struct ra_parser *parser)
 {
 	struct ra_parser_node *node;
 
-	if (!(node = expr_cast(parser))) {
+	if (!(node = expr_unary(parser))) {
 		return NULL;
 	}
 	return expr_multiplicative_(parser, node);
@@ -430,7 +430,7 @@ expr_additive_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_additive_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -443,7 +443,7 @@ expr_additive_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_additive_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -490,7 +490,7 @@ expr_shift_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_shift_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -503,7 +503,7 @@ expr_shift_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_shift_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -535,8 +535,7 @@ expr_shift(struct ra_parser *parser)
  */
 
 static struct ra_parser_node *
-expr_relational_(struct ra_parser *parser,
-		 struct ra_parser_node *left)
+expr_relational_(struct ra_parser *parser, struct ra_parser_node *left)
 {
 	struct ra_parser_node *node;
 
@@ -551,7 +550,7 @@ expr_relational_(struct ra_parser *parser,
 				return NULL;
 			}
 			if (!(node = expr_relational_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -564,7 +563,7 @@ expr_relational_(struct ra_parser *parser,
 				return NULL;
 			}
 			if (!(node = expr_relational_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -577,7 +576,7 @@ expr_relational_(struct ra_parser *parser,
 				return NULL;
 			}
 			if (!(node = expr_relational_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -590,7 +589,7 @@ expr_relational_(struct ra_parser *parser,
 				return NULL;
 			}
 			if (!(node = expr_relational_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -649,7 +648,7 @@ expr_equality_(struct ra_parser *parser, struct ra_parser_node *left)
 			return NULL;
 		}
 		if (!(node = expr_equality_(parser, node))) {
-			P__LOG_DEBUG(0);
+			RA_TRACE("^");
 			return NULL;
 		}
 	}
@@ -692,7 +691,7 @@ expr_and_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_and_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -739,7 +738,7 @@ expr_xor_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_xor_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -786,7 +785,7 @@ expr_or_(struct ra_parser *parser, struct ra_parser_node *left)
 				return NULL;
 			}
 			if (!(node = expr_or_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -818,8 +817,7 @@ expr_or(struct ra_parser *parser)
  */
 
 static struct ra_parser_node *
-expr_logic_and_(struct ra_parser *parser,
-		struct ra_parser_node *left)
+expr_logic_and_(struct ra_parser *parser, struct ra_parser_node *left)
 {
 	struct ra_parser_node *node;
 
@@ -834,7 +832,7 @@ expr_logic_and_(struct ra_parser *parser,
 				return NULL;
 			}
 			if (!(node = expr_logic_and_(parser, node))) {
-				P__LOG_DEBUG(0);
+				RA_TRACE("^");
 				return NULL;
 			}
 		}
@@ -859,10 +857,10 @@ expr_logic_and(struct ra_parser *parser)
 /**
  * (E13)
  *
- * expr_logic_or_ : { [ '^^' '||' ] expr_logic_and expr_logic_xor_or_ }
+ * expr_logic_or_ : { '||' expr_logic_and expr_logic_or_ }
  *                | <e>
  *
- * expr_logic_xor_or : expr_logic_and expr_logic_xor_or_
+ * expr_logic_or : expr_logic_and expr_logic_or_
  */
 
 static struct ra_parser_node *
@@ -873,12 +871,7 @@ expr_logic_or_(struct ra_parser *parser, struct ra_parser_node *left)
 
 	node = left;
 	for (;;) {
-		if (match(parser, RA_LEXER_OPERATOR_LOGIC_XOR)) {
-			MKN(parser, node, RA_PARSER_EXPR_LOGIC_XOR);
-			node->left = left;
-			forward(parser);
-		}
-		else if (match(parser, RA_LEXER_OPERATOR_LOGIC_OR)) {
+		if (match(parser, RA_LEXER_OPERATOR_LOGIC_OR)) {
 			MKN(parser, node, RA_PARSER_EXPR_LOGIC_OR);
 			node->left = left;
 			forward(parser);
@@ -893,7 +886,7 @@ expr_logic_or_(struct ra_parser *parser, struct ra_parser_node *left)
 			return NULL;
 		}
 		if (!(node = expr_logic_or_(parser, node))) {
-			P__LOG_DEBUG(0);
+			RA_TRACE("^");
 			return NULL;
 		}
 	}
@@ -914,7 +907,8 @@ expr_logic_or(struct ra_parser *parser)
 /**
  * (E14)
  *
- * expr_ : expr_logic_or { '?' expr ':' expr }?
+ * expr : expr_logic_or
+ *      | expr_logic_or '?' expr ':' expr
  */
 
 static struct ra_parser_node *
@@ -949,55 +943,7 @@ expr(struct ra_parser *parser)
 	return node;
 }
 
-#endif
-
-static struct ra_parser_node *
-expr(struct ra_parser *parser)
-{
-	struct ra_parser_node *node;
-
-	if (!(node = expr_postfix(parser))) {
-		return NULL;
-	}
-	return node;
-}
-
-/**
- * (E??)
- *
- * expr_list : expr { ',' expr }
- */
-
-static struct ra_parser_node *
-expr_list(struct ra_parser *parser)
-{
-	struct ra_parser_node *node, *node_, *head, *tail;
-	int mark;
-
-	mark = 0;
-	head = tail = NULL;
-	while ((node_ = expr(parser))) {
-		MKN(parser, node, RA_PARSER_EXPR_LIST);
-		node->cond = node_;
-		if (tail) {
-			tail->right = node;
-			tail = node;
-		}
-		else {
-			head = node;
-			tail = node;
-		}
-		if (!(mark = match(parser, RA_LEXER_OPERATOR_COMMA))) {
-			break;
-		}
-		forward(parser);
-	}
-	if (mark) {
-		ERROR(parser, "dangling ','", "");
-		return NULL;
-	}
-	return head;
-}
+/*---------------------------------------------------------------------------*/
 
 static struct ra_parser_node *
 top(struct ra_parser *parser)
@@ -1129,13 +1075,11 @@ const char * const RA_PARSER_STR[] = {
 	"EXPR_ARRAY",
 	"EXPR_FUNCTION",
 	"EXPR_FIELD",
-	"EXPR_PFIELD",
 	"EXPR_INC",
 	"EXPR_DEC",
 	"EXPR_NEG",
 	"EXPR_NOT",
 	"EXPR_LOGIC_NOT",
-	"EXPR_CAST",
 	"EXPR_MUL",
 	"EXPR_DIV",
 	"EXPR_MOD",

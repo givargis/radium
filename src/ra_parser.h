@@ -14,13 +14,11 @@ enum {
 	RA_PARSER_EXPR_ARRAY,     /* left [ right ] */
 	RA_PARSER_EXPR_FUNCTION,  /* left ( right ) */
 	RA_PARSER_EXPR_FIELD,     /* left . u.s */
-	RA_PARSER_EXPR_PFIELD,    /* left '->' u.s */
-	RA_PARSER_EXPR_INC,       /* left ++ */
-	RA_PARSER_EXPR_DEC,       /* right ++ */
+	RA_PARSER_EXPR_INC,       /* left ++, ++ right */
+	RA_PARSER_EXPR_DEC,       /* left --, -- right */
 	RA_PARSER_EXPR_NEG,       /* - right */
 	RA_PARSER_EXPR_NOT,       /* ~ right */
 	RA_PARSER_EXPR_LOGIC_NOT, /* ! right */
-	RA_PARSER_EXPR_CAST,      /* ( left ) right */
 	RA_PARSER_EXPR_MUL,       /* left *  right */
 	RA_PARSER_EXPR_DIV,       /* left /  right */
 	RA_PARSER_EXPR_MOD,       /* left %  right */
