@@ -3,7 +3,7 @@
 #ifndef __RA_LEXER_H__
 #define __RA_LEXER_H__
 
-#include "core/ra_core.h"
+#include "../core/ra_core.h"
 
 enum {
 	RA_LEXER_,
@@ -124,7 +124,5 @@ void ra_lexer_close(ra_lexer_t lexer);
 const struct ra_lexer_token *ra_lexer_lookup(ra_lexer_t lexer, uint64_t i);
 
 uint64_t ra_lexer_items(ra_lexer_t lexer);
-
-const char *ra_lexer_csv(ra_lexer_t lexer);
 
 #endif /* __RA_LEXER_H__ */

@@ -1,30 +1,23 @@
 # Copyright (c) Tony Givargis, 2024-2026
 
+AR     = ar
 CC     = gcc
 CFLAGS = -ansi -pedantic -Wall -Wextra -Werror -Wfatal-errors -O3
-LDLIBS = -lm -lpthread
-LIBS   = core/libcore.a lang/liblang.a
-DEST   = radium
+DEST   = liblang.a
 
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 
-all: libs $(OBJS)
-	@echo "[LN] $(DEST)"
-	@$(CC) $(CFLAGS) -o $(DEST) $(OBJS) $(LIBS) $(LDLIBS)
+all: $(OBJS)
+	@echo "[AR] $(DEST)"
+	@$(AR) rcs $(DEST) $(OBJS)
 
 %.o: %.c
 	@echo "[CC] $<"
 	@$(CC) $(CFLAGS) -c $<
 	@$(CC) $(CFLAGS) -MM $< > $*.d
 
-libs:
-	@make -C core
-	@make -C lang
-
 clean:
 	@rm -f $(DEST) *.o *.d *~ *#
-	@make -C core clean
-	@make -C lang clean
 
 -include $(OBJS:.o=.d)

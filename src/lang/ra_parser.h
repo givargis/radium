@@ -61,6 +61,4 @@ void ra_parser_close(ra_parser_t parser);
 
 struct ra_parser_node *ra_parser_root(ra_parser_t parser);
 
-int ra_parser_print(ra_parser_t parser);
-
 #endif /* __RA_PARSER_H__ */
