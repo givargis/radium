@@ -42,9 +42,16 @@ enum {
 	RA_LANG_END
 };
 
+enum {
+	RA_LANG_TYPE_INT,
+	RA_LANG_TYPE_REAL,
+	RA_LANG_TYPE_STRING
+};
+
 struct ra_lang_node {
 	int id;
 	int op;
+	int type;
 	struct ra_lang_node *cond;
 	struct ra_lang_node *left;
 	struct ra_lang_node *right;
@@ -60,11 +67,5 @@ ra_lang_t ra_lang_open(const char *pathname);
 void ra_lang_close(ra_lang_t lang);
 
 struct ra_lang_node *ra_lang_root(ra_lang_t lang);
-
-RA_INLINE int /* BOOL */
-ra_lang_node_is_expr(const struct ra_lang_node *node)
-{
-	return node && (RA_LANG_ < node->op) && (RA_LANG_EXPR_LIST > node->op);
-}
 
 #endif /* __RA_LANG_H__ */

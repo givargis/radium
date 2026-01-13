@@ -108,6 +108,7 @@ struct ra_lexer_token {
 	int op;
 	unsigned lineno;
 	unsigned column;
+	const char *pathname;
 	union {
 		double r;
 		ra_bigint_t i;

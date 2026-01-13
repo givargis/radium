@@ -11,9 +11,9 @@
 			ra_printf(RA_COLOR_RED_BOLD, "error: ");	\
 			ra_printf(RA_COLOR_BLACK_BOLD,			\
 				  "%s:%u:%u: " f "\n",			\
-				  (p)->pathname,			\
-				  current((p))->lineno,			\
-				  current((p))->column,			\
+				  current(p)->pathname,			\
+				  current(p)->lineno,			\
+				  current(p)->column,			\
 				  (a));					\
 			RA_TRACE("parser error");			\
 		}							\
@@ -38,7 +38,6 @@ struct ra_parser {
 	uint64_t i, n;
 	ra_lexer_t lexer;
 	ra_vector_t nodes;
-	const char *pathname;
 	struct ra_lang_node *node;
 };
 
@@ -85,7 +84,8 @@ forward(struct ra_parser *parser)
  * (E11) expr_or
  * (E12) expr_logic_and
  * (E13) expr_logic_or
- * (E14) expr
+ * (E14) expr_cond
+ * (E15) expr
  *===========================================================================*/
 
 static struct ra_lang_node *expr(struct ra_parser *parser);
@@ -904,7 +904,7 @@ expr_logic_or(struct ra_parser *parser)
  */
 
 static struct ra_lang_node *
-expr(struct ra_parser *parser)
+expr_cond(struct ra_parser *parser)
 {
 	struct ra_lang_node *node, *node_;
 
@@ -931,6 +931,18 @@ expr(struct ra_parser *parser)
 		node = node_;
 	}
 	return node;
+}
+
+/**
+ * (E15)
+ *
+ * top : expr
+ */
+
+static struct ra_lang_node *
+expr(struct ra_parser *parser)
+{
+	return expr_cond(parser);
 }
 
 /**
@@ -967,7 +979,6 @@ ra_parser_open(const char *pathname)
 		return NULL;
 	}
 	memset(parser, 0, sizeof (struct ra_parser));
-	parser->pathname = pathname;
 	if (!(parser->nodes = ra_vector_open()) ||
 	    !(parser->lexer = ra_lexer_open(pathname))) {
 		ra_parser_close(parser);

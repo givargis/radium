@@ -1,6 +1,7 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
 #include "ra_parser.h"
+#include "ra_evaluate.h"
 #include "ra_lang.h"
 
 struct ra_lang {
@@ -22,6 +23,11 @@ ra_lang_open(const char *pathname)
 	}
 	memset(lang, 0, sizeof (struct ra_lang));
 	if (!(lang->parser = ra_parser_open(pathname))) {
+		ra_lang_close(lang);
+		RA_TRACE("^");
+		return NULL;
+	}
+	if (ra_evaluate(ra_lang_root(lang))) {
 		ra_lang_close(lang);
 		RA_TRACE("^");
 		return NULL;
