@@ -392,7 +392,7 @@ ra_mlp_load(ra_mlp_t mlp, const char *pathname)
 	FILE *file;
 	int l, n, m;
 
-	assert( mlp && pathname && strlen(pathname) );
+	assert( mlp && pathname && (*pathname) );
 
 	if (!(file = fopen(pathname, "rb"))) {
 		RA_TRACE("unable to open file for reading");
@@ -420,7 +420,7 @@ ra_mlp_store(ra_mlp_t mlp, const char *pathname)
 	FILE *file;
 	int l, n, m;
 
-	assert( mlp && pathname && strlen(pathname) );
+	assert( mlp && pathname && (*pathname) );
 
 	if (!(file = fopen(pathname, "wb"))) {
 		RA_TRACE("unable to open file for writing");

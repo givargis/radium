@@ -102,7 +102,7 @@ populate(struct ra_lexer *lexer, const char *s, int op)
 	uint64_t h, j;
 	int i;
 
-	assert( s && strlen(s) );
+	assert( s && (*s) );
 	assert( (RA_LEXER_KEYWORD_ < op) && (RA_LEXER_END > op) );
 
 	h = ra_hash(s, strlen(s));
@@ -471,7 +471,7 @@ ra_lexer_open(const char *pathname)
 	const char *s;
 	size_t i;
 
-	assert( pathname && strlen(pathname) );
+	assert( pathname && (*pathname) );
 
 	if (!(lexer = malloc(sizeof (struct ra_lexer)))) {
 		RA_TRACE("out of memory");

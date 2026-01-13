@@ -2,7 +2,7 @@
 
 #include "ra_parser.h"
 
-#define NLEN ( sizeof (struct ra_parser_node) )
+#define NLEN ( sizeof (struct ra_lang_node) )
 
 #define ERROR(p, f, a)							\
 	do {								\
@@ -39,7 +39,7 @@ struct ra_parser {
 	ra_lexer_t lexer;
 	ra_vector_t nodes;
 	const char *pathname;
-	struct ra_parser_node *root;
+	struct ra_lang_node *node;
 };
 
 static const struct ra_lexer_token *
@@ -48,7 +48,7 @@ current(const struct ra_parser *parser)
 	if (!parser->stop && (parser->i < parser->n)) {
 		return ra_lexer_lookup(parser->lexer, parser->i);
 	}
-	return ra_lexer_lookup(parser->lexer, parser->n - 1); /*RA_LEXER_END*/
+	return ra_lexer_lookup(parser->lexer, parser->n - 1); /* LEXER_END */
 }
 
 static int /* BOOL */
@@ -88,7 +88,7 @@ forward(struct ra_parser *parser)
  * (E14) expr
  *===========================================================================*/
 
-static struct ra_parser_node *expr(struct ra_parser *parser);
+static struct ra_lang_node *expr(struct ra_parser *parser);
 
 /**
  * (E0)
@@ -96,16 +96,16 @@ static struct ra_parser_node *expr(struct ra_parser *parser);
  * expr_list : expr { ',' expr }
  */
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_list(struct ra_parser *parser)
 {
-	struct ra_parser_node *node, *node_, *head, *tail;
+	struct ra_lang_node *node, *node_, *head, *tail;
 	int mark;
 
 	mark = 0;
 	head = tail = NULL;
 	while ((node_ = expr(parser))) {
-		MKN(parser, node, RA_PARSER_EXPR_LIST);
+		MKN(parser, node, RA_LANG_EXPR_LIST);
 		node->cond = node_;
 		if (tail) {
 			tail->right = node;
@@ -138,35 +138,35 @@ expr_list(struct ra_parser *parser)
  *              | '(' expr ')'
  */
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_primary(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = NULL;
 	if (match(parser, RA_LEXER_INT)) {
-		MKN(parser, node, RA_PARSER_EXPR_INT);
+		MKN(parser, node, RA_LANG_EXPR_INT);
 		forward(parser);
 	}
 	else if (match(parser, RA_LEXER_REAL)) {
-		MKN(parser, node, RA_PARSER_EXPR_REAL);
+		MKN(parser, node, RA_LANG_EXPR_REAL);
 		forward(parser);
 	}
 	else if (match(parser, RA_LEXER_STRING)) {
-		MKN(parser, node, RA_PARSER_EXPR_STRING);
+		MKN(parser, node, RA_LANG_EXPR_STRING);
 		forward(parser);
 	}
 	else if (match(parser, RA_LEXER_IDENTIFIER)) {
-		MKN(parser, node, RA_PARSER_EXPR_IDENTIFIER);
+		MKN(parser, node, RA_LANG_EXPR_IDENTIFIER);
 		forward(parser);
 	}
-	else if (match(parser, RA_LEXER_OPERATOR_PARENTH_OPEN)) {
+	else if (match(parser, RA_LEXER_OPERATOR_LPAR)) {
 		forward(parser);
 		if (!(node = expr(parser))) {
 			ERROR(parser, "invalid expression after '('", "");
 			return NULL;
 		}
-		if (!match(parser, RA_LEXER_OPERATOR_PARENTH_CLOSE)) {
+		if (!match(parser, RA_LEXER_OPERATOR_RPAR)) {
 			ERROR(parser, "missing ')'", "");
 			return NULL;
 		}
@@ -187,15 +187,15 @@ expr_primary(struct ra_parser *parser)
  * expr_postfix : expr_primary expr_postfix_
  */
 
-static struct ra_parser_node *
-expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_postfix_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
-		if (match(parser, RA_LEXER_OPERATOR_BRACKET_OPEN)) {
-			MKN(parser, node, RA_PARSER_EXPR_ARRAY);
+		if (match(parser, RA_LEXER_OPERATOR_LSQB)) {
+			MKN(parser, node, RA_LANG_EXPR_ARRAY);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr(parser))) {
@@ -204,25 +204,25 @@ expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
 				      "");
 				return NULL;
 			}
-			if (!match(parser, RA_LEXER_OPERATOR_BRACKET_CLOSE)) {
+			if (!match(parser, RA_LEXER_OPERATOR_RSQB)) {
 				ERROR(parser, "missing ']'", "");
 				return NULL;
 			}
 			forward(parser);
 		}
-		else if (match(parser, RA_LEXER_OPERATOR_PARENTH_OPEN)) {
-			MKN(parser, node, RA_PARSER_EXPR_FUNCTION);
+		else if (match(parser, RA_LEXER_OPERATOR_LPAR)) {
+			MKN(parser, node, RA_LANG_EXPR_FUNCTION);
 			node->left = left;
 			forward(parser);
 			node->right = expr_list(parser);
-			if (!match(parser, RA_LEXER_OPERATOR_PARENTH_CLOSE)) {
+			if (!match(parser, RA_LEXER_OPERATOR_RPAR)) {
 				ERROR(parser, "missing ')'", "");
 				return NULL;
 			}
 			forward(parser);
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_DOT)) {
-			MKN(parser, node, RA_PARSER_EXPR_FIELD);
+			MKN(parser, node, RA_LANG_EXPR_FIELD);
 			node->left = left;
 			forward(parser);
 			if (!match(parser, RA_LEXER_IDENTIFIER)) {
@@ -233,12 +233,12 @@ expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
 			forward(parser);
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_INC)) {
-			MKN(parser, node, RA_PARSER_EXPR_INC);
+			MKN(parser, node, RA_LANG_EXPR_INC);
 			node->left = left;
 			forward(parser);
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_DEC)) {
-			MKN(parser, node, RA_PARSER_EXPR_DEC);
+			MKN(parser, node, RA_LANG_EXPR_DEC);
 			node->left = left;
 			forward(parser);
 		}
@@ -251,10 +251,10 @@ expr_postfix_(struct ra_parser *parser, struct ra_parser_node *left)
 
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_postfix(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_primary(parser))) {
 		return NULL;
@@ -269,10 +269,10 @@ expr_postfix(struct ra_parser *parser)
  *            | expr_postfix
  */
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_unary(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = NULL;
 	if (match(parser, RA_LEXER_OPERATOR_ADD)) {
@@ -283,7 +283,7 @@ expr_unary(struct ra_parser *parser)
 		}
 	}
 	else if (match(parser, RA_LEXER_OPERATOR_SUB)) {
-		MKN(parser, node, RA_PARSER_EXPR_NEG);
+		MKN(parser, node, RA_LANG_EXPR_NEG);
 		forward(parser);
 		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid unary '-' operand", "");
@@ -291,7 +291,7 @@ expr_unary(struct ra_parser *parser)
 		}
 	}
 	else if (match(parser, RA_LEXER_OPERATOR_NOT)) {
-		MKN(parser, node, RA_PARSER_EXPR_NOT);
+		MKN(parser, node, RA_LANG_EXPR_NOT);
 		forward(parser);
 		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid '~' operand", "");
@@ -299,7 +299,7 @@ expr_unary(struct ra_parser *parser)
 		}
 	}
 	else if (match(parser, RA_LEXER_OPERATOR_LOGIC_NOT)) {
-		MKN(parser, node, RA_PARSER_EXPR_LOGIC_NOT);
+		MKN(parser, node, RA_LANG_EXPR_LOGIC_NOT);
 		forward(parser);
 		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid '!' operand", "");
@@ -307,7 +307,7 @@ expr_unary(struct ra_parser *parser)
 		}
 	}
 	else if (match(parser, RA_LEXER_OPERATOR_INC)) {
-		MKN(parser, node, RA_PARSER_EXPR_INC);
+		MKN(parser, node, RA_LANG_EXPR_INC);
 		forward(parser);
 		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid '++' operand", "");
@@ -315,7 +315,7 @@ expr_unary(struct ra_parser *parser)
 		}
 	}
 	else if (match(parser, RA_LEXER_OPERATOR_DEC)) {
-		MKN(parser, node, RA_PARSER_EXPR_DEC);
+		MKN(parser, node, RA_LANG_EXPR_DEC);
 		forward(parser);
 		if (!(node->right = expr_unary(parser))) {
 			ERROR(parser, "invalid '--' operand", "");
@@ -337,15 +337,15 @@ expr_unary(struct ra_parser *parser)
  * expr_multiplicative : expr_unary expr_multiplicative_
  */
 
-static struct ra_parser_node *
-expr_multiplicative_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_multiplicative_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_MUL)) {
-			MKN(parser, node, RA_PARSER_EXPR_MUL);
+			MKN(parser, node, RA_LANG_EXPR_MUL);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_unary(parser))) {
@@ -358,7 +358,7 @@ expr_multiplicative_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_DIV)) {
-			MKN(parser, node, RA_PARSER_EXPR_DIV);
+			MKN(parser, node, RA_LANG_EXPR_DIV);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_unary(parser))) {
@@ -371,7 +371,7 @@ expr_multiplicative_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_MOD)) {
-			MKN(parser, node, RA_PARSER_EXPR_MOD);
+			MKN(parser, node, RA_LANG_EXPR_MOD);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_unary(parser))) {
@@ -390,10 +390,10 @@ expr_multiplicative_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_multiplicative(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_unary(parser))) {
 		return NULL;
@@ -410,15 +410,15 @@ expr_multiplicative(struct ra_parser *parser)
  * expr_additive : expr_multiplicative expr_additive_
  */
 
-static struct ra_parser_node *
-expr_additive_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_additive_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_ADD)) {
-			MKN(parser, node, RA_PARSER_EXPR_ADD);
+			MKN(parser, node, RA_LANG_EXPR_ADD);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_multiplicative(parser))) {
@@ -431,7 +431,7 @@ expr_additive_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_SUB)) {
-			MKN(parser, node, RA_PARSER_EXPR_SUB);
+			MKN(parser, node, RA_LANG_EXPR_SUB);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_multiplicative(parser))) {
@@ -450,10 +450,10 @@ expr_additive_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_additive(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_multiplicative(parser))) {
 		return NULL;
@@ -470,15 +470,15 @@ expr_additive(struct ra_parser *parser)
  * expr_shift : expr_additive expr_shift_
  */
 
-static struct ra_parser_node *
-expr_shift_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_shift_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_SHL)) {
-			MKN(parser, node, RA_PARSER_EXPR_SHL);
+			MKN(parser, node, RA_LANG_EXPR_SHL);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_additive(parser))) {
@@ -491,7 +491,7 @@ expr_shift_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_SHR)) {
-			MKN(parser, node, RA_PARSER_EXPR_SHR);
+			MKN(parser, node, RA_LANG_EXPR_SHR);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_additive(parser))) {
@@ -510,10 +510,10 @@ expr_shift_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_shift(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_additive(parser))) {
 		return NULL;
@@ -530,15 +530,15 @@ expr_shift(struct ra_parser *parser)
  * expr_relational : expr_shift expr_relational_
  */
 
-static struct ra_parser_node *
-expr_relational_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_relational_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_LT)) {
-			MKN(parser, node, RA_PARSER_EXPR_LT);
+			MKN(parser, node, RA_LANG_EXPR_LT);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_shift(parser))) {
@@ -551,7 +551,7 @@ expr_relational_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_GT)) {
-			MKN(parser, node, RA_PARSER_EXPR_GT);
+			MKN(parser, node, RA_LANG_EXPR_GT);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_shift(parser))) {
@@ -564,7 +564,7 @@ expr_relational_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_LE)) {
-			MKN(parser, node, RA_PARSER_EXPR_LE);
+			MKN(parser, node, RA_LANG_EXPR_LE);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_shift(parser))) {
@@ -577,7 +577,7 @@ expr_relational_(struct ra_parser *parser, struct ra_parser_node *left)
 			}
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_GE)) {
-			MKN(parser, node, RA_PARSER_EXPR_GE);
+			MKN(parser, node, RA_LANG_EXPR_GE);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_shift(parser))) {
@@ -596,10 +596,10 @@ expr_relational_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_relational(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_shift(parser))) {
 		return NULL;
@@ -616,20 +616,20 @@ expr_relational(struct ra_parser *parser)
  * expr_equality : expr_relational expr_equality_
  */
 
-static struct ra_parser_node *
-expr_equality_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_equality_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_EQ)) {
-			MKN(parser, node, RA_PARSER_EXPR_EQ);
+			MKN(parser, node, RA_LANG_EXPR_EQ);
 			node->left = left;
 			forward(parser);
 		}
 		else if (match(parser, RA_LEXER_OPERATOR_NE)) {
-			MKN(parser, node, RA_PARSER_EXPR_NE);
+			MKN(parser, node, RA_LANG_EXPR_NE);
 			node->left = left;
 			forward(parser);
 		}
@@ -639,7 +639,7 @@ expr_equality_(struct ra_parser *parser, struct ra_parser_node *left)
 		if (!(node->right = expr_relational(parser))) {
 			ERROR(parser,
 			      "invalid '%s' operand",
-			      (node->op == RA_PARSER_EXPR_EQ) ? "==" : "!=");
+			      (node->op == RA_LANG_EXPR_EQ) ? "==" : "!=");
 			return NULL;
 		}
 		if (!(node = expr_equality_(parser, node))) {
@@ -650,10 +650,10 @@ expr_equality_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_equality(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_relational(parser))) {
 		return NULL;
@@ -670,15 +670,15 @@ expr_equality(struct ra_parser *parser)
  * expr_and : expr_equality expr_and_
  */
 
-static struct ra_parser_node *
-expr_and_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_and_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_AND)) {
-			MKN(parser, node, RA_PARSER_EXPR_AND);
+			MKN(parser, node, RA_LANG_EXPR_AND);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_equality(parser))) {
@@ -697,10 +697,10 @@ expr_and_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_and(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_equality(parser))) {
 		return NULL;
@@ -717,15 +717,15 @@ expr_and(struct ra_parser *parser)
  * expr_xor : expr_and expr_xor_
  */
 
-static struct ra_parser_node *
-expr_xor_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_xor_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_XOR)) {
-			MKN(parser, node, RA_PARSER_EXPR_XOR);
+			MKN(parser, node, RA_LANG_EXPR_XOR);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_and(parser))) {
@@ -744,10 +744,10 @@ expr_xor_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_xor(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_and(parser))) {
 		return NULL;
@@ -764,15 +764,15 @@ expr_xor(struct ra_parser *parser)
  * expr_or : expr_xor expr_or_
  */
 
-static struct ra_parser_node *
-expr_or_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_or_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_OR)) {
-			MKN(parser, node, RA_PARSER_EXPR_OR);
+			MKN(parser, node, RA_LANG_EXPR_OR);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_xor(parser))) {
@@ -791,10 +791,10 @@ expr_or_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_or(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_xor(parser))) {
 		return NULL;
@@ -811,15 +811,15 @@ expr_or(struct ra_parser *parser)
  * expr_logic_and : expr_or expr_logic_and_
  */
 
-static struct ra_parser_node *
-expr_logic_and_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_logic_and_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_LOGIC_AND)) {
-			MKN(parser, node, RA_PARSER_EXPR_LOGIC_AND);
+			MKN(parser, node, RA_LANG_EXPR_LOGIC_AND);
 			node->left = left;
 			forward(parser);
 			if (!(node->right = expr_or(parser))) {
@@ -838,10 +838,10 @@ expr_logic_and_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_logic_and(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_or(parser))) {
 		return NULL;
@@ -858,15 +858,15 @@ expr_logic_and(struct ra_parser *parser)
  * expr_logic_or : expr_logic_and expr_logic_or_
  */
 
-static struct ra_parser_node *
-expr_logic_or_(struct ra_parser *parser, struct ra_parser_node *left)
+static struct ra_lang_node *
+expr_logic_or_(struct ra_parser *parser, struct ra_lang_node *left)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	node = left;
 	for (;;) {
 		if (match(parser, RA_LEXER_OPERATOR_LOGIC_OR)) {
-			MKN(parser, node, RA_PARSER_EXPR_LOGIC_OR);
+			MKN(parser, node, RA_LANG_EXPR_LOGIC_OR);
 			node->left = left;
 			forward(parser);
 		}
@@ -885,10 +885,10 @@ expr_logic_or_(struct ra_parser *parser, struct ra_parser_node *left)
 	return node;
 }
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr_logic_or(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr_logic_and(parser))) {
 		return NULL;
@@ -903,18 +903,16 @@ expr_logic_or(struct ra_parser *parser)
  *      | expr_logic_or '?' expr ':' expr
  */
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 expr(struct ra_parser *parser)
 {
-	struct ra_parser_node *node, *node_;
-
-	assert( parser );
+	struct ra_lang_node *node, *node_;
 
 	if (!(node = expr_logic_or(parser))) {
 		return NULL;
 	}
 	if (match(parser, RA_LEXER_OPERATOR_QUESTION)) {
-		MKN(parser, node_, RA_PARSER_EXPR_COND);
+		MKN(parser, node_, RA_LANG_EXPR_COND);
 		node_->cond = node;
 		forward(parser);
 		if (!(node_->left = expr(parser))) {
@@ -935,12 +933,16 @@ expr(struct ra_parser *parser)
 	return node;
 }
 
-/*---------------------------------------------------------------------------*/
+/**
+ * (**)
+ *
+ * top :
+ */
 
-static struct ra_parser_node *
+static struct ra_lang_node *
 top(struct ra_parser *parser)
 {
-	struct ra_parser_node *node;
+	struct ra_lang_node *node;
 
 	if (!(node = expr(parser))) {
 		ERROR(parser, "invalid program", "");
@@ -958,7 +960,7 @@ ra_parser_open(const char *pathname)
 {
 	struct ra_parser *parser;
 
-	assert( pathname && strlen(pathname) );
+	assert( pathname && (*pathname) );
 
 	if (!(parser = malloc(sizeof (struct ra_parser)))) {
 		RA_TRACE("out of memory");
@@ -977,7 +979,7 @@ ra_parser_open(const char *pathname)
 		ra_parser_close(parser);
 		return NULL;
 	}
-	if (!(parser->root = top(parser))) {
+	if (!(parser->node = top(parser))) {
 		ra_parser_close(parser);
 		RA_TRACE("^");
 		return NULL;
@@ -996,47 +998,10 @@ ra_parser_close(ra_parser_t parser)
 	}
 }
 
-struct ra_parser_node *
+struct ra_lang_node *
 ra_parser_root(ra_parser_t parser)
 {
 	assert( parser );
 
-	return parser->root;
+	return parser->node;
 }
-
-const char * const RA_PARSER_STR[] = {
-	"",
-	"EXPR_INT",
-	"EXPR_REAL",
-	"EXPR_STRING",
-	"EXPR_IDENTIFIER",
-	"EXPR_ARRAY",
-	"EXPR_FUNCTION",
-	"EXPR_FIELD",
-	"EXPR_INC",
-	"EXPR_DEC",
-	"EXPR_NEG",
-	"EXPR_NOT",
-	"EXPR_LOGIC_NOT",
-	"EXPR_MUL",
-	"EXPR_DIV",
-	"EXPR_MOD",
-	"EXPR_ADD",
-	"EXPR_SUB",
-	"EXPR_SHL",
-	"EXPR_SHR",
-	"EXPR_LT",
-	"EXPR_GT",
-	"EXPR_LE",
-	"EXPR_GE",
-	"EXPR_EQ",
-	"EXPR_NE",
-	"EXPR_AND",
-	"EXPR_XOR",
-	"EXPR_OR",
-	"EXPR_LOGIC_AND",
-	"EXPR_LOGIC_OR",
-	"EXPR_COND",
-	"EXPR_LIST",
-	"END"
-};

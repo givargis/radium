@@ -637,7 +637,7 @@ ra_bigint_real(double r)
 ra_bigint_t
 ra_bigint_string(const char *s)
 {
-	assert( s && strlen(s) );
+	assert( s && (*s) );
 
 	return convert_string(s);
 }

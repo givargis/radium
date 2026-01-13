@@ -30,8 +30,8 @@ ra_jitc_compile(const char *input, const char *output)
 	pid_t pid, pid_;
 	int status;
 
-	assert( input && strlen(input) );
-	assert( output && strlen(output) );
+	assert( input && (*input) );
+	assert( output && (*output) );
 
 	argv[RA_ARRAY_SIZE(argv) - 2] = input;
 	argv[RA_ARRAY_SIZE(argv) - 3] = output;
@@ -71,7 +71,7 @@ ra_jitc_open(const char *pathname)
 {
 	struct ra_jitc *jitc;
 
-	assert( pathname && strlen(pathname) );
+	assert( pathname && (*pathname) );
 
 	if (!(jitc = malloc(sizeof (struct ra_jitc)))) {
 		RA_TRACE("out of memory");
@@ -103,7 +103,7 @@ ra_jitc_lookup(ra_jitc_t jitc, const char *symbol)
 {
 	assert( jitc );
 	assert( jitc->handle );
-	assert( symbol && strlen(symbol) );
+	assert( symbol && (*symbol) );
 
 	return (long)dlsym(jitc->handle, symbol);
 }

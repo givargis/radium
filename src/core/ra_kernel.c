@@ -36,7 +36,7 @@ ra_sleep(uint64_t us)
 void
 ra_unlink(const char *pathname)
 {
-	if (pathname && strlen(pathname)) {
+	if (pathname && (*pathname)) {
 		remove(pathname);
 	}
 }

@@ -194,7 +194,7 @@ ra_map_update(ra_map_t map, const char *key, const void *val)
 {
 	struct node *root;
 
-	assert( map && key && strlen(key) );
+	assert( map && key && (*key) );
 
 	if (!(root = update(map, map->root, key, val))) {
 		RA_TRACE("^");
@@ -210,7 +210,7 @@ ra_map_lookup(ra_map_t map, const char *key)
 	const struct node *node;
 	int d;
 
-	assert( map && key && strlen(key) );
+	assert( map && key && (*key) );
 
 	node = map->root;
 	while (node) {

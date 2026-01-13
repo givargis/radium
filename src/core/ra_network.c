@@ -141,8 +141,8 @@ ra_network_listen(const char *hostname,
 	struct server *server;
 	int fd;
 
-	assert( hostname && strlen(hostname) );
-	assert( hostname && strlen(servname) );
+	assert( hostname && (*hostname) );
+	assert( hostname && (*servname) );
 	assert( fnc );
 
 	/* initialize */
@@ -238,8 +238,8 @@ ra_network_connect(const char *hostname, const char *servname)
 	struct ra_network *network;
 	int fd;
 
-	assert( hostname && strlen(hostname) );
-	assert( hostname && strlen(servname) );
+	assert( hostname && (*hostname) );
+	assert( hostname && (*servname) );
 
 	/* initialize */
 

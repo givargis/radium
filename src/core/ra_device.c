@@ -34,7 +34,7 @@ ra_device_open(const char *pathname)
 	uint32_t u32;
 	int i, n;
 
-	assert( pathname && strlen(pathname) );
+	assert( pathname && (*pathname) );
 
 	/* initialize */
 
