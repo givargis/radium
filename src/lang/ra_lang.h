@@ -61,4 +61,10 @@ void ra_lang_close(ra_lang_t lang);
 
 struct ra_lang_node *ra_lang_root(ra_lang_t lang);
 
+RA_INLINE int /* BOOL */
+ra_lang_node_is_expr(const struct ra_lang_node *node)
+{
+	return node && (RA_LANG_ < node->op) && (RA_LANG_EXPR_LIST > node->op);
+}
+
 #endif /* __RA_LANG_H__ */
