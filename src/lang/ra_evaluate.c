@@ -15,6 +15,14 @@
 	}							\
 	while (0)
 
+static int NUMERIC_TYPE[4][4] = {
+	/*---------*     _  INT REAL STRING */
+	/*  _      */  { 0,   0,   0,     0  },
+	/*  INT    */  { 0,   1,   2,     0  },
+	/*  REAL   */  { 0,   2,   2,     0  },
+	/*  STRING */  { 0,   0,   0,     0  }
+};
+
 static int
 expr_int(struct ra_lang_node *node)
 {
@@ -100,13 +108,6 @@ expr_logic_not(struct ra_lang_node *node)
 }
 
 static int
-expr_mul(struct ra_lang_node *node)
-{
-	(void)node;
-	return 0;
-}
-
-static int
 expr_div(struct ra_lang_node *node)
 {
 	(void)node;
@@ -121,16 +122,21 @@ expr_mod(struct ra_lang_node *node)
 }
 
 static int
-expr_add(struct ra_lang_node *node)
+expr_add_sub_mul(struct ra_lang_node *node)
 {
-	(void)node;
-	return 0;
-}
+	const struct ra_lang_node *left = node->left;
+	const struct ra_lang_node *right = node->right;
+	char buf[64];
 
-static int
-expr_sub(struct ra_lang_node *node)
-{
-	(void)node;
+	if (!(node->type = NUMERIC_TYPE[left->type][right->type])) {
+		ra_sprintf(buf,
+			   sizeof (buf),
+			   "%s and %s",
+			   RA_LANG_TYPE_STR[left->type],
+			   RA_LANG_TYPE_STR[right->type]);
+		ERROR(node, "type mismatch between %s", buf);
+		return -1;
+	}
 	return 0;
 }
 
@@ -248,11 +254,11 @@ evaluate(struct ra_lang_node *node)
 		expr_neg,
 		expr_not,
 		expr_logic_not,
-		expr_mul,
+		expr_add_sub_mul,
 		expr_div,
 		expr_mod,
-		expr_add,
-		expr_sub,
+		expr_add_sub_mul,
+		expr_add_sub_mul,
 		expr_shl,
 		expr_shr,
 		expr_lt,
@@ -270,8 +276,8 @@ evaluate(struct ra_lang_node *node)
 	};
 
 	if (node) {
-		if ((RA_LANG_EXPR_INT > node->op) ||
-		    (RA_LANG_EXPR_COND < node->op)) {
+		if ((RA_LANG_OP_EXPR_INT > node->op) ||
+		    (RA_LANG_OP_EXPR_COND < node->op)) {
 			ERROR(node, "software error detected (aborting)", "");
 			abort();
 		}
@@ -281,7 +287,7 @@ evaluate(struct ra_lang_node *node)
 			RA_TRACE("^");
 			return -1;
 		}
-		if (FTBL[node->op - RA_LANG_EXPR_INT](node)) {
+		if (FTBL[node->op - RA_LANG_OP_EXPR_INT](node)) {
 			RA_TRACE("^");
 			return -1;
 		}

@@ -53,8 +53,8 @@ ra_lang_root(ra_lang_t lang)
 	return ra_parser_root(lang->parser);
 }
 
-const char * const RA_LANG_STR[] = {
-	"",
+const char * const RA_LANG_OP_STR[] = {
+	"?",
 	"EXPR_INT",
 	"EXPR_REAL",
 	"EXPR_STRING",
@@ -88,4 +88,11 @@ const char * const RA_LANG_STR[] = {
 	"EXPR_COND",
 	"EXPR_LIST",
 	"END"
+};
+
+const char * const RA_LANG_TYPE_STR[] = {
+	"?",
+	"INT",
+	"REAL",
+	"STRING"
 };

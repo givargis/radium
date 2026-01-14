@@ -29,7 +29,7 @@ print(const struct ra_lang_node *node)
 			   node->cond ? node->cond->id : 0);
 
 		s = "";
-		if (RA_LANG_EXPR_IDENTIFIER == node->op) {
+		if (RA_LANG_OP_EXPR_IDENTIFIER == node->op) {
 			s = node->token->u.s;
 		}
 
@@ -38,7 +38,7 @@ print(const struct ra_lang_node *node)
 		       node->left ? buf[0] : "-",
 		       node->right ? buf[1] : "-",
 		       node->cond ? buf[2] : "-",
-		       RA_LANG_STR[node->op],
+		       RA_LANG_OP_STR[node->op],
 		       s);
 	}
 }

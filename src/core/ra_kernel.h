@@ -24,8 +24,6 @@
 
 #define RA_ARRAY_SIZE(a) ( sizeof ((a)) / sizeof ((a)[0]) )
 
-#define RA_INLINE static __attribute__((unused))
-
 #define RA_FREE(p)				\
 	do {					\
 		if (p) {			\
@@ -92,7 +90,7 @@ int ra_cores(void);
 
 int ra_endian(void);
 
-RA_INLINE int
+static __attribute__((unused)) int
 ra_is_zero(const void *buf, uint64_t len)
 {
 	if (*((const char *)buf)) {
@@ -101,7 +99,7 @@ ra_is_zero(const void *buf, uint64_t len)
 	return !memcmp(buf, ((const char *)buf) + 1, len - 1);
 }
 
-RA_INLINE void *
+static __attribute__((unused)) void *
 ra_align(void *p, size_t n)
 {
 	size_t r;
