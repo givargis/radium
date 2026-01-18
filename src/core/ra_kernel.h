@@ -19,9 +19,6 @@
 #include <limits.h>
 #include <assert.h>
 
-#define RA_ENDIAN_BIG    0
-#define RA_ENDIAN_LITTLE 1
-
 #define RA_MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
 #define RA_MAX(a, b) ( ((a) > (b)) ? (a) : (b) )
 #define RA_DUP(a, b) ( (0 == ((a) % (b))) ? ((a) / (b)) : ((a) / (b) + 1) )
@@ -68,6 +65,12 @@ typedef enum {
 	RA_COLOR_GRAY_BOLD
 } ra_color_t;
 
+typedef enum {
+	RA_ENDIAN_,
+	RA_ENDIAN_BIG,
+	RA_ENDIAN_LITTLE
+} ra_endian_t;
+
 extern int ra_trace_enabled;
 
 void ra_kernel_init(void);
@@ -92,7 +95,7 @@ size_t ra_memory(void);
 
 int ra_cores(void);
 
-int ra_endian(void);
+ra_endian_t ra_endian(void);
 
 static __attribute__((unused)) int
 ra_is_zero(const void *buf, uint64_t len)

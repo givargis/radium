@@ -161,7 +161,7 @@ ra_cores(void)
 	return (int)cores;
 }
 
-int
+ra_endian_t
 ra_endian(void)
 {
 	const uint32_t SAMPLE = 0x87654321;
@@ -182,5 +182,5 @@ ra_endian(void)
 	}
 	RA_TRACE("unsupported architecture (abort)");
 	abort();
-	return -1;
+	return RA_ENDIAN_;
 }
