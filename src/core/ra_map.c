@@ -333,6 +333,46 @@ ra_map_test(void)
 		return -1;
 	}
 
+	/* sequential update */
+
+	for (i=0; i<N; ++i) {
+		ra_sprintf(key, sizeof (key), "%d", i);
+		ra_sprintf(val, sizeof (val), "%d", i);
+		if (ra_map_update(map, key, val)) {
+			ra_map_close(map);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+		val_ = ra_map_lookup(map, key);
+		if (!val_ || strcmp(val_, val)) {
+			ra_map_close(map);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+
+	/* sequential lookup */
+
+	for (i=0; i<N; ++i) {
+		ra_sprintf(key, sizeof (key), "%d", i);
+		ra_sprintf(val, sizeof (val), "%d", i);
+		val_ = ra_map_lookup(map, key);
+		if (!val_ || strcmp(val_, val)) {
+			ra_map_close(map);
+			RA_TRACE("integrity failure detected");
+			return -1;
+		}
+	}
+
+	/* empty */
+
+	ra_map_empty(map);
+	if (0 != ra_map_items(map)) {
+		ra_map_close(map);
+		RA_TRACE("integrity failure detected");
+		return -1;
+	}
+
 	/* done */
 
 	ra_map_close(map);
