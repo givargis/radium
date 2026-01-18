@@ -3,6 +3,7 @@
 #define _GNU_SOURCE
 
 #include <netinet/tcp.h>
+#include <arpa/inet.h>
 #include <sys/uio.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -353,6 +354,19 @@ ra_network_write(ra_network_t network, const void *buf_, size_t len)
 		}
 		buf += (size_t)n;
 		len -= (size_t)n;
+	}
+	return 0;
+}
+
+int /* BOOL */
+ra_network_is_valid(const char *address)
+{
+	struct in6_addr ipv6;
+	struct in_addr ipv4;
+
+	if ((1 == inet_pton(AF_INET, address, &ipv4)) ||
+	    (1 == inet_pton(AF_INET6, address, &ipv6))) {
+		return 1;
 	}
 	return 0;
 }

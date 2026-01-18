@@ -22,4 +22,6 @@ int ra_network_read(ra_network_t network, void *buf, size_t len);
 
 int ra_network_write(ra_network_t network, const void *buf, size_t len);
 
+int /* BOOL */ ra_network_is_valid(const char *address);
+
 #endif /* __RA_NETWORK_H__ */
