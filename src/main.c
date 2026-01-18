@@ -50,6 +50,7 @@ main(int argc, char *argv[])
 
 	ra_trace_enabled = 1;
 	ra_core_init();
+	ra_core_test();
 
 	if (2 != argc) {
 		fprintf(stderr, "usage: radium pathname\n");

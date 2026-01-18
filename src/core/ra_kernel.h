@@ -3,6 +3,10 @@
 #ifndef __RA_KERNEL_H__
 #define __RA_KERNEL_H__
 
+#if defined __cplusplus
+# error "This is C code, use a C compiler"
+#endif /* __cplusplus */
+
 #include <math.h>
 #include <errno.h>
 #include <ctype.h>
