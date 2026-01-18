@@ -87,17 +87,6 @@ const char * const RA_LANG_OP_STR[] = {
 	"EXPR_LOGIC_OR",
 	"EXPR_COND",
 	"EXPR_LIST",
-	"STMT_ASN",
-	"STMT_ASN_ADD",
-	"STMT_ASN_SUB",
-	"STMT_ASN_MUL",
-	"STMT_ASN_DIV",
-	"STMT_ASN_MOD",
-	"STMT_ASN_SHL",
-	"STMT_ASN_SHR",
-	"STMT_ASN_AND",
-	"STMT_ASN_XOR",
-	"STMT_ASN_OR",
 	"END"
 };
 

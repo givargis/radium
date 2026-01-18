@@ -39,17 +39,6 @@ enum {
 	RA_LANG_OP_EXPR_LOGIC_OR,  /* left || right */
 	RA_LANG_OP_EXPR_COND,      /* cond ? left : right */
 	RA_LANG_OP_EXPR_LIST,      /* expr: cond, link: right */
-	RA_LANG_OP_STMT_ASN,       /* left   = right */
-        RA_LANG_OP_STMT_ASN_ADD,   /* left  += right */
-        RA_LANG_OP_STMT_ASN_SUB,   /* left  -= right */
-        RA_LANG_OP_STMT_ASN_MUL,   /* left  *= right */
-        RA_LANG_OP_STMT_ASN_DIV,   /* left  /= right */
-        RA_LANG_OP_STMT_ASN_MOD,   /* left  %= right */
-        RA_LANG_OP_STMT_ASN_SHL,   /* left <<= right */
-        RA_LANG_OP_STMT_ASN_SHR,   /* left >>= right */
-        RA_LANG_OP_STMT_ASN_AND,   /* left  &= right */
-        RA_LANG_OP_STMT_ASN_XOR,   /* left  ^= right */
-        RA_LANG_OP_STMT_ASN_OR,    /* left  |= right */
 	RA_LANG_END
 };
 

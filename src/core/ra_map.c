@@ -246,7 +246,7 @@ ra_map_items(ra_map_t map)
 int
 ra_map_test(void)
 {
-	const int N = 200000;
+	const int N = 1000000;
 	const void *val_;
 	ra_map_t map;
 	char key[32];

@@ -4,8 +4,8 @@
 
 #include <netinet/tcp.h>
 #include <sys/uio.h>
-#include <unistd.h>
 #include <netdb.h>
+#include <unistd.h>
 
 #include "ra_thread.h"
 #include "ra_network.h"

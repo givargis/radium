@@ -5,6 +5,10 @@
 
 #include "ra_kernel.h"
 
+typedef int (*ra_file_fnc_t)(void *ctx, const char *pathname);
+
+int ra_file_dir(const char *pathname, ra_file_fnc_t fnc, void *ctx);
+
 void *ra_file_read(const char *pathname, size_t *len);
 
 int ra_file_write(const char *pathname, const void *buf, size_t len);

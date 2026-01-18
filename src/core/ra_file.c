@@ -1,7 +1,72 @@
 /* Copyright (c) Tony Givargis, 2024-2026 */
 
 #include <sys/stat.h>
+#include <dirent.h>
+#include <unistd.h>
+
 #include "ra_file.h"
+
+static int
+_dir_(const char *pathname, ra_file_fnc_t fnc, void *ctx)
+{
+	struct dirent *dirent;
+	struct stat stat_;
+	char *pathname_;
+	DIR *dir;
+	size_t n;
+
+	if (lstat(pathname, &stat_)) {
+		return 0;
+	}
+	if (S_ISREG(stat_.st_mode)) {
+		if (fnc(ctx, pathname)) {
+			RA_TRACE("^");
+			return -1;
+		}
+		return 0;
+	}
+	if (!S_ISDIR(stat_.st_mode)) {
+		return 0;
+	}
+	if (!(dir = opendir(pathname))) {
+		RA_TRACE("unable to open directory");
+		return -1;
+	}
+	while ((dirent = readdir(dir))) {
+		if (!strcmp(dirent->d_name, ".") ||
+		    !strcmp(dirent->d_name, "..")) {
+			continue;
+		}
+		n = strlen(pathname) + strlen(dirent->d_name) + 2;
+		if (!(pathname_ = malloc(n))) {
+			closedir(dir);
+			RA_TRACE("out of memory");
+			return -1;
+		}
+		ra_sprintf(pathname_, n, "%s/%s", pathname, dirent->d_name);
+		if (_dir_(pathname_, fnc, ctx)) {
+			closedir(dir);
+			RA_FREE(pathname_);
+			RA_TRACE("^");
+			return -1;
+		}
+		RA_FREE(pathname_);
+	}
+	closedir(dir);
+	return 0;
+}
+
+int
+ra_file_dir(const char *pathname, ra_file_fnc_t fnc, void *ctx)
+{
+	assert( pathname && (*pathname) && fnc );
+
+	if (_dir_(pathname, fnc, ctx)) {
+		RA_TRACE("^");
+		return -1;
+	}
+	return 0;
+}
 
 void *
 ra_file_read(const char *pathname, size_t *len_)
