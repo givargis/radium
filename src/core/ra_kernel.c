@@ -6,6 +6,7 @@
 #include "ra_hash.h"
 #include "ra_kernel.h"
 
+int ra_color_enabled;
 int ra_trace_enabled;
 
 void
@@ -49,7 +50,8 @@ ra_printf(ra_color_t color, const char *format, ...)
 
 	assert( format );
 
-	if ((term = isatty(STDOUT_FILENO))) {
+	term = ra_color_enabled ? isatty(STDOUT_FILENO) : 0;
+	if (term) {
 		printf("\033[%dm", color / 2 + 30);
 		if (0 != (color % 2)) {
 			printf("\033[1m");

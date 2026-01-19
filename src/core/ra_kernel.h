@@ -71,6 +71,7 @@ typedef enum {
 	RA_ENDIAN_LITTLE
 } ra_endian_t;
 
+extern int ra_color_enabled;
 extern int ra_trace_enabled;
 
 void ra_kernel_init(void);

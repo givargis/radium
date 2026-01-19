@@ -3,16 +3,20 @@
 #include "core/ra_core.h"
 #include "ra_version.h"
 
-const char *
-ra_version(void)
-{
-	static char buf[32];
+#define MKS(x) #x
+#define STR(x) MKS(x)
 
-	ra_sprintf(buf,
-		   sizeof (buf),
-		   "%d.%d.%d",
-		   RA_VERSION_MAJOR,
-		   RA_VERSION_MINOR,
-		   RA_VERSION_PATCH);
-	return buf;
-}
+const char *RA_VERSION =
+	STR(RA_VERSION_MAJOR) "."
+	STR(RA_VERSION_MINOR) "."
+	STR(RA_VERSION_PATCH);
+
+const char *RA_COPYRIGHT =
+	"Copyright (c) Tony Givargis, 2024-2026";
+
+const char *RA_GRAPHICS =
+	"                   ___\n"
+	"   _________ _____/ (_)_  ______ ___\n"
+	"  / ___/ __ `/ __  / / / / / __ `__ \\\n"
+	" / /  / /_/ / /_/ / / /_/ / / / / / /\n"
+	"/_/   \\__,_/\\__,_/_/\\__,_/_/ /_/ /_/\n";

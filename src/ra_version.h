@@ -7,6 +7,8 @@
 #define RA_VERSION_MINOR 0
 #define RA_VERSION_PATCH 0
 
-const char *ra_version(void);
+extern const char *RA_VERSION;
+extern const char *RA_COPYRIGHT;
+extern const char *RA_GRAPHICS;
 
 #endif /* __RA_VERSION_H__ */
