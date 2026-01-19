@@ -17,11 +17,10 @@ main(int argc, char *argv[])
 	(void)argc;
 	(void)argv;
 
-	ra_color_enabled = 0;
+	ra_color_enabled = 1;
 	ra_trace_enabled = 1;
 
 	greetings();
-
 	ra_core_init();
 	ra_core_test();
 
