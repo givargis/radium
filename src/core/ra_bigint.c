@@ -137,8 +137,8 @@ uadd(const struct ra_bigint *a, const struct ra_bigint *b)
 		uint64_t a_ = (i < a->width) ? a->parts[i] : 0;
 		uint64_t b_ = (i < b->width) ? b->parts[i] : 0;
 		uint64_t z_;
-		z_  = a_ + b_ + c;
-		c = (z_ < a_) || (z_ < b_) || (c && (z_ == (a_ + b_)));
+		z_  = a_ + b_ + (uint64_t)c;
+		c = (z_ < a_) || (c && (z_ == a_));
 		z->parts[i] = z_;
 	}
 	normalize(z);
@@ -160,8 +160,8 @@ usub(const struct ra_bigint *a, const struct ra_bigint *b)
 		uint64_t a_ = a->parts[i];
 		uint64_t b_ = (i < b->width) ? b->parts[i] : 0;
 		uint64_t z_;
-		z_ = a_ - b_ - c;
-		c = (a_ < (b_ + c));
+		z_ = a_ - b_ - (uint64_t)c;
+		c = (a_ < b_) || (c && (a_ == b_));
 		z->parts[i] = z_;
 	}
 	normalize(z);
@@ -732,4 +732,11 @@ int
 ra_bigint_is_negative(ra_bigint_t a)
 {
 	return IS_NEGATIVE(a);
+}
+
+int
+ra_bigint_test(void)
+{
+	/* FIX : not implemented */
+	return 0;
 }

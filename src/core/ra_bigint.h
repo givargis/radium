@@ -46,4 +46,6 @@ int ra_bigint_is_one(ra_bigint_t a);
 
 int ra_bigint_is_negative(ra_bigint_t a);
 
+int ra_bigint_test(void);
+
 #endif /* __RA_BIGINT_H__ */
